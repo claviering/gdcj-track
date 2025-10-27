@@ -1,0 +1,133 @@
+# AI coding agent guide for this repo
+
+## tool
+* using yarn as package manager
+
+## Big picture
+- Purpose: a Koa + TypeScript server that serves direct and 1-transfer train schedules from local JSON data and returns a Tailwind-styled HTML page.
+- Data flow: JSON files (in `data/`) -> in-memory indices -> compute results -> in-memory cache and per-route JSON cache (in `cache/`) -> HTML render.
+- Key modules:
+  - `src/dataLoader.ts`: Loads `data/SingleCityTrack.json` and each `data/{cityTrackId}.json` once at startup. Builds fast lookups (`positionByName`, `stationIdByPosition`). Exposes `DataStore`.
+  - `src/schedule.ts`: Computes results. Two paths: direct trips and one-transfer trips. Applies safety caps to bound memory/response size.
+  - `src/render.ts`: Pure HTML render functions using Tailwind via CDN. No client JS or build step.
+  - `src/server.ts`: Koa server + routes, in-memory result cache, file cache read/write, and startup data bootstrapping.
+  - `src/utils.ts` and `src/types.ts`: Time parsing/formatting helpers, filename sanitization, shared types.
+
+## How the server works (with examples)
+- Endpoint: `GET /train-schedule?start=起点站&end=终点站` (e.g., `/train-schedule?start=惠州北&end=肇庆`).
+- Validation: rejects identical start/end and unknown stations (validated via `DataStore.allStationNames`).
+- Caching layers:
+  - In-memory Map keyed by `"start-end"` (see `fileKey`), populated after first compute or load.
+  - File cache: writes to `cache/START-END-schedule.json`; loaded on subsequent runs (Windows-safe via `sanitizeFilename`).
+- Time rules: `parseHHmmToMinutes` handles HH:mm; cross-midnight arrivals/connections add 24h when later time < earlier time.
+- Transfer rules: single transfer only, matching on same station name across tracks. Ignores connections with wait > `MAX_WAIT_MINUTES` (default 180).
+- Safety caps (in `src/schedule.ts`): `MAX_*_RESULTS`, pruning thresholds to keep memory bounded; solutions sorted by total duration, then wait.
+
+## Dev workflows (Windows PowerShell)
+- Install/build/start from project root:
+  - `npm install`
+  - `npm run build`
+  - `npm start` (serves on `http://localhost:3000` or `PORT` env)
+- Live dev (auto-reload): `npm run dev` (uses `ts-node-dev`).
+- TypeScript: strict mode, outputs to `dist/`. No bundler needed.
+
+## Conventions and patterns to follow
+- Data files live under `data/`: `data/SingleCityTrack.json` and `data/239.json`–`data/244.json` etc. Loader assumes this layout.
+- Stations are compared by name for transfer matching; direction enforced via station positions (must increase along a track).
+- Rendering is server-side only; keep `render.ts` free of side effects and return complete HTML strings.
+- File cache JSON is the full `QueryResult`; when oversized or stringify fails, a trimmed summary is written instead.
+
+## Extending safely
+- To add tracks/cities: update `SingleCityTrack.json` and place corresponding `{cityTrackId}.json` at root; server will load on next start.
+- To tweak search behavior: adjust constants in `src/schedule.ts` (e.g., `MAX_WAIT_MINUTES`) and ensure performance by keeping caps.
+- To add APIs: reuse `DataStore` from `ensureDataLoaded()`; prefer read-only access patterns and avoid mutating loaded indices.
+
+## testing
+using `Invoke-RestMethod -Uri "http://localhost:3000/train-schedule?start=%E9%93%B6%E7%93%B6&end=%E7%A7%91%E9%9F%B5%E8%B7%AF" -Method Get` in PowerShell to test endpoints.
+
+## about the SingleCityTrack.json file
+
+example content of the file:
+```json
+{
+    "body": [
+        {
+        "trackName": "肇庆-惠州北",
+        "list": [
+          {
+            "cityTrackId": 244,
+            "trackName": "肇庆-惠州北",
+            "status": 1,
+            "startStationName": "肇庆",
+            "endStationName": "惠州北",
+            "createTime": null,
+            "creator": null,
+            "modifyTime": null,
+            "modifier": null
+          }
+        ]
+      }
+    ]
+}
+```
+* body: list of transport networks
+    - trackName: name of the transport network
+    - list: list of transport lines in the network
+        * cityTrackId: unique identifier for the transport line
+        * trackName: name of the transport line
+        * startStationName: starting station of the line
+        * endStationName: ending station of the line
+
+
+## about the ${cityTrackId}.json file
+
+example content of the file:
+```json
+{
+    "body": {
+        "stationList": [
+            {
+                "stationId": 6337,
+                "stationName": "飞霞",
+                "stationPosition": 1,
+                "status": 1,
+                "cityTrackId": 239,
+                "createTime": "2025-10-24 18:18:35",
+                "creator": "a292460111354ee6bc27d766a1e98b78",
+                "modifyTime": "2025-10-25 10:54:58",
+                "modifier": "a292460111354ee6bc27d766a1e98b78",
+                "isStartStation": null
+            }
+        ],
+        "trainTimeList": [
+            {
+                "trainNumber": {
+                    "trainNumberId": 11870,
+                    "name": "C4902/3",
+                    "cityTrackId": 239,
+                    "createTime": null,
+                    "creator": null,
+                    "modifyTime": null,
+                    "modifier": null
+                },
+                "stationArriveTimeList": [
+                    {
+                        "id": 710854,
+                        "stationId": 6337,
+                        "trainNumberId": 11870,
+                        "arriveTime": "06:00",
+                        "createTime": null,
+                        "creator": null,
+                        "modifyTime": null,
+                        "modifier": null
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+* stationList: list of stations in the transport network
+* trainTimeList: list of scheduled trains in the transport network
+    - trainNumber: details of the train
+    - stationArriveTimeList: list of arrival times at each station
