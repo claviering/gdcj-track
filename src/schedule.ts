@@ -72,6 +72,23 @@ function computeRelevantStations(store: DataStore, start: string, end: string): 
   return validStations;
 }
 
+function computeRelevantTracks(store: DataStore, start: string, end: string): Set<number> {
+  const directTracks = new Set<number>();
+
+  for (const [cityTrackId, track] of store.loadedTracks) {
+    const startPos = track.positionByName.get(start);
+    const endPos = track.positionByName.get(end);
+    const hasStart = startPos != null;
+    const hasEnd = endPos != null;
+
+    if (hasStart && hasEnd && startPos! < endPos!) {
+      directTracks.add(cityTrackId);
+    }
+  }
+
+  return directTracks;
+}
+
 function keepTopMutating(arr: TransferCandidate[], max: number) {
   arr.sort((a, b) =>
     a.solution.totalMinutes - b.solution.totalMinutes ||
@@ -159,37 +176,71 @@ type DirectCandidate = {
   arriveMinutes: number;
 };
 
-function buildDirectSolutions(store: DataStore, start: string, end: string): DirectSolution[] {
+function buildDirectSolutions(store: DataStore, start: string, end: string, relevantTracks?: Set<number>): DirectSolution[] {
   const dateLabel = todayMonthDayLabel();
   const candidates: DirectCandidate[] = [];
 
-  for (const [cityTrackId, track] of store.loadedTracks) {
-    const posStart = track.positionByName.get(start);
-    const posEnd = track.positionByName.get(end);
-    if (posStart == null || posEnd == null) continue;
-    if (posStart >= posEnd) continue; // wrong direction
+  if (relevantTracks && relevantTracks.size > 0) {
+    for (const cityTrackId of relevantTracks) {
+      const track = store.loadedTracks.get(cityTrackId);
+      if (!track) continue;
+      const posStart = track.positionByName.get(start);
+      const posEnd = track.positionByName.get(end);
+      if (posStart == null || posEnd == null) continue;
+      if (posStart >= posEnd) continue; // wrong direction
 
-    const startStationId = track.stationIdByPosition.get(posStart)!;
-    const endStationId = track.stationIdByPosition.get(posEnd)!;
+      const startStationId = track.stationIdByPosition.get(posStart)!;
+      const endStationId = track.stationIdByPosition.get(posEnd)!;
 
-    for (const tt of track.trainTimeList) {
-      const timing = findLegTiming(track, tt, startStationId, endStationId, posStart, posEnd);
-      if (!timing) continue;
-      const trainName = tt.trainNumber?.name?.trim() ?? "";
-      const durationMinutes = timing.arriveMin - timing.departMin;
-      if (durationMinutes <= 0) continue;
-      const solution: DirectSolution = {
-        type: "direct",
-        cityTrackId,
-        trainName,
-        startStation: start,
-        endStation: end,
-        departTime: minutesToHHmm(timing.departMin),
-        arriveTime: minutesToHHmm(timing.arriveMin),
-        dateLabel,
-        durationMinutes,
-      };
-      candidates.push({ solution, departMinutes: timing.departMin, arriveMinutes: timing.arriveMin });
+      for (const tt of track.trainTimeList) {
+        const timing = findLegTiming(track, tt, startStationId, endStationId, posStart, posEnd);
+        if (!timing) continue;
+        const trainName = tt.trainNumber?.name?.trim() ?? "";
+        const durationMinutes = timing.arriveMin - timing.departMin;
+        if (durationMinutes <= 0) continue;
+        const solution: DirectSolution = {
+          type: "direct",
+          cityTrackId,
+          trainName,
+          startStation: start,
+          endStation: end,
+          departTime: minutesToHHmm(timing.departMin),
+          arriveTime: minutesToHHmm(timing.arriveMin),
+          dateLabel,
+          durationMinutes,
+        };
+        candidates.push({ solution, departMinutes: timing.departMin, arriveMinutes: timing.arriveMin });
+      }
+    }
+  } else {
+    for (const [cityTrackId, track] of store.loadedTracks) {
+      const posStart = track.positionByName.get(start);
+      const posEnd = track.positionByName.get(end);
+      if (posStart == null || posEnd == null) continue;
+      if (posStart >= posEnd) continue; // wrong direction
+
+      const startStationId = track.stationIdByPosition.get(posStart)!;
+      const endStationId = track.stationIdByPosition.get(posEnd)!;
+
+      for (const tt of track.trainTimeList) {
+        const timing = findLegTiming(track, tt, startStationId, endStationId, posStart, posEnd);
+        if (!timing) continue;
+        const trainName = tt.trainNumber?.name?.trim() ?? "";
+        const durationMinutes = timing.arriveMin - timing.departMin;
+        if (durationMinutes <= 0) continue;
+        const solution: DirectSolution = {
+          type: "direct",
+          cityTrackId,
+          trainName,
+          startStation: start,
+          endStation: end,
+          departTime: minutesToHHmm(timing.departMin),
+          arriveTime: minutesToHHmm(timing.arriveMin),
+          dateLabel,
+          durationMinutes,
+        };
+        candidates.push({ solution, departMinutes: timing.departMin, arriveMinutes: timing.arriveMin });
+      }
     }
   }
 
@@ -264,14 +315,19 @@ function enumerateTransferCandidates(store: DataStore, start: string, end: strin
   return { leg1, leg2 };
 }
 
-function buildTransferSolutions(store: DataStore, start: string, end: string, validStations: Set<string>): TransferSolution[] {
+function buildTransferSolutions(store: DataStore, start: string, end: string, directTrackIds: Set<number>): TransferSolution[] {
+  const validStations = computeRelevantStations(store, start, end);
   const dateLabel = todayMonthDayLabel();
   const solutions: TransferCandidate[] = [];
 
   // Build a map: transferStationName -> list of leg candidates for leg1 and leg2
   const transferStations = new Map<string, { leg1: Array<{ track: LoadedTrack; fromPos: number; toPos: number }>; leg2: Array<{ track: LoadedTrack; fromPos: number; toPos: number }> }>();
 
-  for (const [cityTrackId, track] of store.loadedTracks) {
+  const trackIds = directTrackIds.size > 0 ? directTrackIds : new Set(store.loadedTracks.keys());
+
+  for (const cityTrackId of trackIds) {
+    const track = store.loadedTracks.get(cityTrackId);
+    if (!track) continue;
     const posStart = track.positionByName.get(start);
     const posEnd = track.positionByName.get(end);
 
@@ -431,9 +487,9 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, va
 }
 
 export function computeSchedule(store: DataStore, start: string, end: string): QueryResult {
-  const validStations = computeRelevantStations(store, start, end);
-  const direct = buildDirectSolutions(store, start, end);
-  const transfers = direct.length > 0 ? [] : buildTransferSolutions(store, start, end, validStations);
+  const directTrackIds = computeRelevantTracks(store, start, end);
+  const direct = buildDirectSolutions(store, start, end, directTrackIds);
+  const transfers = direct.length > 0 ? [] : buildTransferSolutions(store, start, end, directTrackIds);
   return {
     start,
     end,
