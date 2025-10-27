@@ -1,120 +1,18 @@
-bug: different transfer stations should be keeped
-```html
-<div class="bg-white rounded-xl shadow p-4 md:p-5 border border-gray-100 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold">方案 1</h3>
-          <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">总用时 1h53m</span>
-        </div>
-        <div class="grid gap-3">
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">C4702/3</div>
-              <div class="text-xs text-gray-500">10月27日</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">07:05</div>
-              <div class="text-center text-gray-500">用时 1h21m</div>
-              <div class="text-right text-gray-900 font-medium">08:26</div>
-              <div class="text-gray-600">银瓶</div>
-              <div></div>
-              <div class="text-right text-gray-600">广州莲花山</div>
-            </div>
-          </div>
-
-          <div class="text-center text-xs text-amber-700">在 广州莲花山 等待 5m</div>
-
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">S4812</div>
-              <div class="text-xs text-gray-500">10月27日</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">08:31</div>
-              <div class="text-center text-gray-500">用时 27m</div>
-              <div class="text-right text-gray-900 font-medium">08:58</div>
-              <div class="text-gray-600">广州莲花山</div>
-              <div></div>
-              <div class="text-right text-gray-600">科韵路</div>
-            </div>
-          </div>
-        </div>
-      </div>
-<div class="bg-white rounded-xl shadow p-4 md:p-5 border border-gray-100 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold">方案 2</h3>
-          <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">总用时 1h53m</span>
-        </div>
-        <div class="grid gap-3">
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">C4702/3</div>
-              <div class="text-xs text-gray-500">10月27日</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">07:05</div>
-              <div class="text-center text-gray-500">用时 1h7m</div>
-              <div class="text-right text-gray-900 font-medium">08:12</div>
-              <div class="text-gray-600">银瓶</div>
-              <div></div>
-              <div class="text-right text-gray-600">东莞西</div>
-            </div>
-          </div>
-
-          <div class="text-center text-xs text-amber-700">在 东莞西 等待 6m</div>
-
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">S4812</div>
-              <div class="text-xs text-gray-500">10月27日</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">08:18</div>
-              <div class="text-center text-gray-500">用时 40m</div>
-              <div class="text-right text-gray-900 font-medium">08:58</div>
-              <div class="text-gray-600">东莞西</div>
-              <div></div>
-              <div class="text-right text-gray-600">科韵路</div>
-            </div>
-          </div>
-        </div>
-      </div>
-<div class="bg-white rounded-xl shadow p-4 md:p-5 border border-gray-100 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-semibold">方案 3</h3>
-          <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">总用时 1h53m</span>
-        </div>
-        <div class="grid gap-3">
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">C4702/3</div>
-              <div class="text-xs text-gray-500">10月27日</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">07:05</div>
-              <div class="text-center text-gray-500">用时 1h14m</div>
-              <div class="text-right text-gray-900 font-medium">08:19</div>
-              <div class="text-gray-600">银瓶</div>
-              <div></div>
-              <div class="text-right text-gray-600">麻涌</div>
-            </div>
-          </div>
-
-          <div class="text-center text-xs text-amber-700">在 麻涌 等待 6m</div>
-
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">S4812</div>
-              <div class="text-xs text-gray-500">10月27日</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">08:25</div>
-              <div class="text-center text-gray-500">用时 33m</div>
-              <div class="text-right text-gray-900 font-medium">08:58</div>
-              <div class="text-gray-600">麻涌</div>
-              <div></div>
-              <div class="text-right text-gray-600">科韵路</div>
-            </div>
-          </div>
-        </div>
-      </div>
+mission 1: update the form for searching corresponding trains.
+* add a `出发时间` field below the `起点站` field to specify the departure time for the first leg of the journey.
+example:
 ```
+start station: A
+end station: C
+departure time: 09:00
+arriveTime at station A: C123 at 09:15, C456 at 09:30, C789 at 10:00
+```
+* only find the first leg train departing from `起点站` at or after the specified `出发时间`.
+
+mission 2: update the `起点站` and `终点站` fields to using a searchable select by station names instad of using input fields.
+* search from the `store.allStationNames` list for matching station names as the user types.
+
+* move the `出发时间` field to be below the `终点站` field for better form layout.
+* if departure time if specified, find the only one train that closest to the specified time for the first leg of the journey.
+
+when calculating the timeDiff, don't using Math.abs, only consider trains departing at or after the specified time. and create a function to make code reusable.

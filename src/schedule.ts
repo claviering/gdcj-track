@@ -176,9 +176,40 @@ type DirectCandidate = {
   arriveMinutes: number;
 };
 
-function buildDirectSolutions(store: DataStore, start: string, end: string, relevantTracks?: Set<number>): DirectSolution[] {
+/**
+ * Find the closest option departing at or after the target time.
+ * Returns null if no options depart at or after the target time.
+ */
+function findClosestDepartingAtOrAfter<T extends { departMinutes: number }>(
+  options: T[],
+  targetDepartMinutes: number
+): T | null {
+  let closestOption: T | null = null;
+  let minTimeDiff = Infinity;
+  
+  for (const option of options) {
+    // Only consider trains departing at or after the target time
+    if (option.departMinutes < targetDepartMinutes) {
+      continue;
+    }
+    
+    const timeDiff = option.departMinutes - targetDepartMinutes;
+    if (timeDiff < minTimeDiff) {
+      minTimeDiff = timeDiff;
+      closestOption = option;
+    }
+  }
+  
+  return closestOption;
+}
+
+function buildDirectSolutions(store: DataStore, start: string, end: string, relevantTracks?: Set<number>, departTime?: string): DirectSolution[] {
   const dateLabel = todayMonthDayLabel();
   const candidates: DirectCandidate[] = [];
+  
+  // Parse the target departure time if provided
+  const targetDepartMinutes = departTime ? parseHHmmToMinutes(departTime) : undefined;
+  const hasTargetTime = targetDepartMinutes !== undefined && !Number.isNaN(targetDepartMinutes);
 
   if (relevantTracks && relevantTracks.size > 0) {
     for (const cityTrackId of relevantTracks) {
@@ -195,6 +226,7 @@ function buildDirectSolutions(store: DataStore, start: string, end: string, rele
       for (const tt of track.trainTimeList) {
         const timing = findLegTiming(track, tt, startStationId, endStationId, posStart, posEnd);
         if (!timing) continue;
+        
         const trainName = tt.trainNumber?.name?.trim() ?? "";
         const durationMinutes = timing.arriveMin - timing.departMin;
         if (durationMinutes <= 0) continue;
@@ -225,6 +257,7 @@ function buildDirectSolutions(store: DataStore, start: string, end: string, rele
       for (const tt of track.trainTimeList) {
         const timing = findLegTiming(track, tt, startStationId, endStationId, posStart, posEnd);
         if (!timing) continue;
+        
         const trainName = tt.trainNumber?.name?.trim() ?? "";
         const durationMinutes = timing.arriveMin - timing.departMin;
         if (durationMinutes <= 0) continue;
@@ -242,6 +275,12 @@ function buildDirectSolutions(store: DataStore, start: string, end: string, rele
         candidates.push({ solution, departMinutes: timing.departMin, arriveMinutes: timing.arriveMin });
       }
     }
+  }
+
+  // If target time specified, find the closest train departing at or after that time
+  if (hasTargetTime) {
+    const closestCandidate = findClosestDepartingAtOrAfter(candidates, targetDepartMinutes!);
+    return closestCandidate ? [closestCandidate.solution] : [];
   }
 
   // sort by arrival time (earliest first), then duration, then departure time
@@ -265,10 +304,14 @@ function buildDirectSolutions(store: DataStore, start: string, end: string, rele
   return unique;
 }
 
-function buildTransferSolutions(store: DataStore, start: string, end: string, directTrackIds: Set<number>): TransferSolution[] {
+function buildTransferSolutions(store: DataStore, start: string, end: string, directTrackIds: Set<number>, departTime?: string): TransferSolution[] {
   const validStations = computeRelevantStations(store, start, end);
   const dateLabel = todayMonthDayLabel();
   const solutions: TransferCandidate[] = [];
+  
+  // Parse the target departure time if provided
+  const targetDepartMinutes = departTime ? parseHHmmToMinutes(departTime) : undefined;
+  const hasTargetTime = targetDepartMinutes !== undefined && !Number.isNaN(targetDepartMinutes);
 
   // Build a map: transferStationName -> list of leg candidates for leg1 and leg2
   const transferStations = new Map<string, { leg1: Array<{ track: LoadedTrack; fromPos: number; toPos: number }>; leg2: Array<{ track: LoadedTrack; fromPos: number; toPos: number }> }>();
@@ -330,6 +373,17 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
   for (const [transferStation, pair] of transferStations) {
     if (pair.leg1.length === 0 || pair.leg2.length === 0) continue;
 
+    // If target time specified, first find the closest first-leg train
+    type FirstLegOption = {
+      l1: { track: LoadedTrack; fromPos: number; toPos: number };
+      tt1: TrainTime;
+      timing1: LegTiming;
+      dep1m: number;
+      arr1m: number;
+    };
+    
+    const firstLegOptions: FirstLegOption[] = [];
+    
     for (const l1 of pair.leg1) {
       const startStationId = l1.track.stationIdByPosition.get(l1.fromPos)!;
       const transferStationId = l1.track.stationIdByPosition.get(l1.toPos)!;
@@ -337,76 +391,95 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
       for (const tt1 of l1.track.trainTimeList) {
         const timing1 = findLegTiming(l1.track, tt1, startStationId, transferStationId, l1.fromPos, l1.toPos);
         if (!timing1) continue;
+        
         const dep1m = timing1.departMin;
         const arr1m = timing1.arriveMin;
+        
+        firstLegOptions.push({ l1, tt1, timing1, dep1m, arr1m });
+      }
+    }
+    
+    // Filter to closest first-leg departing at or after target time if specified
+    let firstLegsToProcess = firstLegOptions;
+    if (hasTargetTime) {
+      const closestOption = findClosestDepartingAtOrAfter(
+        firstLegOptions.map(opt => ({ ...opt, departMinutes: opt.dep1m })),
+        targetDepartMinutes!
+      );
+      
+      firstLegsToProcess = closestOption ? [firstLegOptions.find(opt => opt.dep1m === closestOption.dep1m)!] : [];
+    }
+    
+    // Build transfer solutions for selected first legs
+    for (const { l1, tt1, timing1, dep1m, arr1m } of firstLegsToProcess) {
+      const transferStationId = l1.track.stationIdByPosition.get(l1.toPos)!;
 
-        for (const l2 of pair.leg2) {
-          const transferStationId2 = l2.track.stationIdByPosition.get(l2.fromPos)!; // same station name but different track possible
-          const endStationId = l2.track.stationIdByPosition.get(l2.toPos)!;
-          // Ensure the transfer station names actually match
-          const stationName1 = l1.track.stations.find((s) => s.stationPosition === l1.toPos)!.stationName;
-          const stationName2 = l2.track.stations.find((s) => s.stationPosition === l2.fromPos)!.stationName;
-          if (stationName1 !== stationName2) continue;
+      for (const l2 of pair.leg2) {
+        const transferStationId2 = l2.track.stationIdByPosition.get(l2.fromPos)!; // same station name but different track possible
+        const endStationId = l2.track.stationIdByPosition.get(l2.toPos)!;
+        // Ensure the transfer station names actually match
+        const stationName1 = l1.track.stations.find((s) => s.stationPosition === l1.toPos)!.stationName;
+        const stationName2 = l2.track.stations.find((s) => s.stationPosition === l2.fromPos)!.stationName;
+        if (stationName1 !== stationName2) continue;
 
-          for (const tt2 of l2.track.trainTimeList) {
-            const timing2 = findLegTiming(l2.track, tt2, transferStationId2, endStationId, l2.fromPos, l2.toPos);
-            if (!timing2) continue;
-            let dep2m = timing2.departMin;
-            let arr2m = timing2.arriveMin;
-            while (dep2m < arr1m) {
-              dep2m += 24 * 60;
-              arr2m += 24 * 60;
-            }
+        for (const tt2 of l2.track.trainTimeList) {
+          const timing2 = findLegTiming(l2.track, tt2, transferStationId2, endStationId, l2.fromPos, l2.toPos);
+          if (!timing2) continue;
+          let dep2m = timing2.departMin;
+          let arr2m = timing2.arriveMin;
+          while (dep2m < arr1m) {
+            dep2m += 24 * 60;
+            arr2m += 24 * 60;
+          }
 
-            const wait = dep2m - arr1m;
-            if (wait < 0) continue;
-            if (wait > MAX_WAIT_MINUTES) continue; // skip impractically long transfers
-            const leg1Dur = arr1m - dep1m;
-            const leg2Dur = arr2m - dep2m;
-            if (leg1Dur <= 0 || leg2Dur <= 0) continue;
-            const totalMinutes = leg1Dur + wait + leg2Dur;
+          const wait = dep2m - arr1m;
+          if (wait < 0) continue;
+          if (wait > MAX_WAIT_MINUTES) continue; // skip impractically long transfers
+          const leg1Dur = arr1m - dep1m;
+          const leg2Dur = arr2m - dep2m;
+          if (leg1Dur <= 0 || leg2Dur <= 0) continue;
+          const totalMinutes = leg1Dur + wait + leg2Dur;
 
-            const leg1TrainName = tt1.trainNumber?.name?.trim() ?? "";
-            const leg2TrainName = tt2.trainNumber?.name?.trim() ?? "";
-            if (wait === 0 && leg1TrainName && leg1TrainName === leg2TrainName) {
-              continue; // same physical train with no wait acts as a direct service
-            }
+          const leg1TrainName = tt1.trainNumber?.name?.trim() ?? "";
+          const leg2TrainName = tt2.trainNumber?.name?.trim() ?? "";
+          if (wait === 0 && leg1TrainName && leg1TrainName === leg2TrainName) {
+            continue; // same physical train with no wait acts as a direct service
+          }
 
-            const leg1: TransferLeg = {
-              cityTrackId: l1.track.cityTrackId,
-              trainName: leg1TrainName,
-              fromStation: start,
-              toStation: transferStation,
-              departTime: minutesToHHmm(dep1m),
-              arriveTime: minutesToHHmm(arr1m),
-              durationMinutes: leg1Dur,
-            };
-            const leg2: TransferLeg = {
-              cityTrackId: l2.track.cityTrackId,
-              trainName: leg2TrainName,
-              fromStation: transferStation,
-              toStation: end,
-              departTime: minutesToHHmm(dep2m),
-              arriveTime: minutesToHHmm(arr2m),
-              durationMinutes: leg2Dur,
-            };
+          const leg1: TransferLeg = {
+            cityTrackId: l1.track.cityTrackId,
+            trainName: leg1TrainName,
+            fromStation: start,
+            toStation: transferStation,
+            departTime: minutesToHHmm(dep1m),
+            arriveTime: minutesToHHmm(arr1m),
+            durationMinutes: leg1Dur,
+          };
+          const leg2: TransferLeg = {
+            cityTrackId: l2.track.cityTrackId,
+            trainName: leg2TrainName,
+            fromStation: transferStation,
+            toStation: end,
+            departTime: minutesToHHmm(dep2m),
+            arriveTime: minutesToHHmm(arr2m),
+            durationMinutes: leg2Dur,
+          };
 
-            const solution: TransferSolution = {
-              type: "transfer",
-              transferStation,
-              leg1,
-              leg2,
-              waitMinutes: wait,
-              dateLabel,
-              totalMinutes,
-            };
+          const solution: TransferSolution = {
+            type: "transfer",
+            transferStation,
+            leg1,
+            leg2,
+            waitMinutes: wait,
+            dateLabel,
+            totalMinutes,
+          };
 
-            solutions.push({ solution, arrivalMinutes: arr2m });
+          solutions.push({ solution, arrivalMinutes: arr2m });
 
-            // Periodically prune to keep memory bounded
-            if (solutions.length > PRUNE_TRIGGER_SIZE) {
-              keepTopMutating(solutions, INTERMEDIATE_TRANSFER_CAP);
-            }
+          // Periodically prune to keep memory bounded
+          if (solutions.length > PRUNE_TRIGGER_SIZE) {
+            keepTopMutating(solutions, INTERMEDIATE_TRANSFER_CAP);
           }
         }
       }
@@ -436,10 +509,10 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
   return unique;
 }
 
-export function computeSchedule(store: DataStore, start: string, end: string): QueryResult {
+export function computeSchedule(store: DataStore, start: string, end: string, departTime?: string): QueryResult {
   const directTrackIds = computeRelevantTracks(store, start, end);
-  const direct = buildDirectSolutions(store, start, end, directTrackIds);
-  const transfers = direct.length > 0 ? [] : buildTransferSolutions(store, start, end, directTrackIds);
+  const direct = buildDirectSolutions(store, start, end, directTrackIds, departTime);
+  const transfers = direct.length > 0 ? [] : buildTransferSolutions(store, start, end, directTrackIds, departTime);
   return {
     start,
     end,
