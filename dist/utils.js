@@ -4,8 +4,6 @@ exports.parseHHmmToMinutes = parseHHmmToMinutes;
 exports.minutesToHHmm = minutesToHHmm;
 exports.formatDuration = formatDuration;
 exports.todayMonthDayLabel = todayMonthDayLabel;
-exports.fileKey = fileKey;
-exports.sanitizeFilename = sanitizeFilename;
 function parseHHmmToMinutes(hhmm) {
     const [hh, mm] = hhmm.split(":").map((v) => parseInt(v, 10));
     if (Number.isNaN(hh) || Number.isNaN(mm))
@@ -33,11 +31,4 @@ function todayMonthDayLabel(date = new Date()) {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     return `${month}月${day}日`;
-}
-function fileKey(start, end) {
-    return `${start}-${end}`;
-}
-function sanitizeFilename(name) {
-    // Remove characters that are invalid in Windows filenames: \\/:*?"<>|
-    return name.replace(/[\\/:*?"<>|]/g, "_");
 }

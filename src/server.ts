@@ -1,65 +1,19 @@
 import Koa from "koa";
 import Router from "@koa/router";
-import path from "path";
-import fs from "fs/promises";
 import { loadAllData, DataStore } from "./dataLoader";
 import { renderErrorHtml, renderResultHtml } from "./render";
 import { computeSchedule } from "./schedule";
-import { CachedResult, QueryResult } from "./types";
-import { fileKey, sanitizeFilename } from "./utils";
 
 const app = new Koa();
 const router = new Router();
 
 let store: DataStore;
-const resultCache = new Map<string, QueryResult>();
-const CACHE_DIR_NAME = "cache";
 
 async function ensureDataLoaded() {
   if (!store) {
     const rootDir = process.cwd();
     store = await loadAllData(rootDir);
     console.log(`Loaded data: ${store.tracks.length} tracks, ${store.loadedTracks.size} files, ${store.allStationNames.size} stations.`);
-    // Ensure cache directory exists
-    try {
-      await fs.mkdir(path.join(rootDir, CACHE_DIR_NAME), { recursive: true });
-    } catch {}
-  }
-}
-
-async function loadFromFileCache(start: string, end: string): Promise<QueryResult | null> {
-  const key = fileKey(start, end);
-  const fname = `${sanitizeFilename(key)}-schedule.json`;
-  const fpath = path.join(store.rootDir, CACHE_DIR_NAME, fname);
-  try {
-    const raw = await fs.readFile(fpath, "utf8");
-    const obj: CachedResult = JSON.parse(raw);
-    return obj;
-  } catch {
-    return null;
-  }
-}
-
-async function saveToFileCache(result: QueryResult): Promise<void> {
-  const key = fileKey(result.start, result.end);
-  const fname = `${sanitizeFilename(key)}-schedule.json`;
-  const fpath = path.join(store.rootDir, CACHE_DIR_NAME, fname);
-  // Write compact JSON to reduce size; wrap in try/catch to avoid crashing on rare stringify issues
-  try {
-    const serialized = JSON.stringify(result);
-    await fs.writeFile(fpath, serialized, "utf8");
-  } catch (e) {
-    // Fallback: write a trimmed summary
-    const summary = {
-      start: result.start,
-      end: result.end,
-      generatedAt: result.generatedAt,
-      directCount: result.direct.length,
-      transferCount: result.transfers.length,
-      direct: result.direct.slice(0, 50),
-      transfers: result.transfers.slice(0, 50),
-    };
-    await fs.writeFile(fpath, JSON.stringify(summary), "utf8");
   }
 }
 
@@ -86,21 +40,7 @@ router.get("/train-schedule", async (ctx) => {
     return;
   }
 
-  const key = fileKey(start, end);
-  let result = resultCache.get(key);
-  if (!result) {
-    // Try file cache
-    const cached = await loadFromFileCache(start, end);
-    if (cached) {
-      result = cached;
-      resultCache.set(key, result);
-    } else {
-      // Compute and cache
-      result = computeSchedule(store, start, end);
-      resultCache.set(key, result);
-      await saveToFileCache(result);
-    }
-  }
+  const result = computeSchedule(store, start, end);
 
   ctx.type = "text/html; charset=utf-8";
   ctx.body = renderResultHtml(result);

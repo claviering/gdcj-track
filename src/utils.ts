@@ -26,12 +26,3 @@ export function todayMonthDayLabel(date = new Date()): string {
   const day = date.getDate();
   return `${month}月${day}日`;
 }
-
-export function fileKey(start: string, end: string): string {
-  return `${start}-${end}`;
-}
-
-export function sanitizeFilename(name: string): string {
-  // Remove characters that are invalid in Windows filenames: \\/:*?"<>|
-  return name.replace(/[\\/:*?"<>|]/g, "_");
-}

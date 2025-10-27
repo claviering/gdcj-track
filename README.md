@@ -1,6 +1,6 @@
 # Train Schedule Query (Koa + TypeScript)
 
-A high-performance Koa server that returns direct and 1-transfer train schedules between two stations. Data is loaded once at startup from the provided JSON files and kept in memory. Query results are cached in-memory and persisted per route to `START-END-schedule.json`.
+A high-performance Koa server that returns direct and 1-transfer train schedules between two stations. Data is loaded once at startup from the provided JSON files and kept in memory.
 
 ## Features
 
@@ -8,8 +8,6 @@ A high-performance Koa server that returns direct and 1-transfer train schedules
 - Reads `SingleCityTrack.json` and all `{cityTrackId}.json` files once at startup
 - Supports direct trains and single-transfer solutions
 - Sorts by total travel time (shortest first)
-- Caches query results in memory and also writes them to `START-END-schedule.json`
-- On restart, reads the cached file for repeated queries instead of recomputing
 - Mobile-friendly UI with Tailwind CSS (via CDN)
 
 ## Prerequisites
@@ -46,13 +44,11 @@ If any validation fails:
 - Same station for start/end: `Start and end stations cannot be the same.`
 - Station not found: `One or both stations not found in the system.`
 
-## Data and Caching
+## Data
 
 - Data files expected under `data/` at project root:
   - `data/SingleCityTrack.json`
   - `data/239.json`, `data/240.json`, `data/241.json`, `data/242.json`, `data/243.json`, `data/244.json`
-- On first request for a route, the server computes results and writes them to `cache/START-END-schedule.json` (e.g., `cache/惠州北-肇庆-schedule.json`).
-- On subsequent requests (even after a restart), the server first attempts to load the cached file from `cache/`, serving it directly if found.
 
 ## Development
 
