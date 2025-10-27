@@ -93,6 +93,34 @@ export function renderHomePage(allStationNames: Set<string>): string {
     
     setupStationInput('startInput', 'startDropdown');
     setupStationInput('endInput', 'endDropdown');
+
+    // Enhance time input: open native picker when clicking anywhere in the field
+    (function enhanceTimePickerOpen() {
+      const timeInput = document.querySelector('input[type="time"][name="departTime"]');
+      if (!timeInput) return;
+
+      const openPicker = () => {
+        // Chromium and some modern browsers support showPicker()
+        if (typeof timeInput.showPicker === 'function') {
+          timeInput.showPicker();
+        } else {
+          // Fallback: focus to trigger platform UI where applicable
+          timeInput.focus();
+        }
+      };
+
+      // Open on focus (keyboard/tab) and on click/tap anywhere in the input
+      timeInput.addEventListener('focus', openPicker);
+      timeInput.addEventListener('click', openPicker);
+
+      // Make Enter/Space also open the picker
+      timeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openPicker();
+        }
+      });
+    })();
   </script>
 </body>
 </html>`;
