@@ -20,7 +20,7 @@
 - Transfer rules: single transfer only, matching on same station name across tracks. Ignores connections with wait > `MAX_WAIT_MINUTES` (default 180).
 - Safety caps (in `src/schedule.ts`): `MAX_*_RESULTS`, pruning thresholds to keep memory bounded; solutions sorted by total duration, then wait.
 
-## Dev workflows (Windows PowerShell)
+## Dev workflows
 - Install/build/start from project root:
   - `npm install`
   - `npm run build`

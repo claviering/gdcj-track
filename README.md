@@ -15,11 +15,11 @@ A high-performance Koa server that returns direct and 1-transfer train schedules
 - Node.js 18+
 - yarn
 
-## Setup (Windows PowerShell)
+## Setup
 
-```powershell
+```shell
 # From the project root (the folder containing package.json)
-# 1) Install dependencies (if PowerShell script execution is blocked, invoke via cmd):
+# 1) Install dependencies
 yarn install
 
 # 2) Build TypeScript
@@ -54,7 +54,7 @@ If any validation fails:
 
 For live-reload development:
 
-```powershell
+```shell
 # Start in dev mode (ts-node-dev)
  yarn run dev
 ```
