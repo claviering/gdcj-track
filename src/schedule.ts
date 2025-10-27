@@ -512,7 +512,8 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
 export function computeSchedule(store: DataStore, start: string, end: string, departTime?: string): QueryResult {
   const directTrackIds = computeRelevantTracks(store, start, end);
   const direct = buildDirectSolutions(store, start, end, directTrackIds, departTime);
-  const transfers = direct.length > 0 ? [] : buildTransferSolutions(store, start, end, directTrackIds, departTime);
+  // Always compute transfer solutions to find potentially faster routes
+  const transfers = buildTransferSolutions(store, start, end, directTrackIds, departTime);
   return {
     start,
     end,

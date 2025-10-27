@@ -11,16 +11,50 @@ function escapeHtml(s: string) {
 }
 
 export function renderResultHtml(q: QueryResult): string {
-  const hasDirect = q.direct.length > 0;
-  const hasTransfer = q.transfers.length > 0;
+  // Merge all solutions and sort by arrival time
+  type Solution = { type: 'direct' | 'transfer'; data: any; arriveTime: string; departTime: string; totalMinutes: number };
+  
+  const allSolutions: Solution[] = [
+    ...q.direct.map(d => ({
+      type: 'direct' as const,
+      data: d,
+      arriveTime: d.arriveTime,
+      departTime: d.departTime,
+      totalMinutes: d.durationMinutes
+    })),
+    ...q.transfers.map(t => ({
+      type: 'transfer' as const,
+      data: t,
+      arriveTime: t.leg2.arriveTime,
+      departTime: t.leg1.departTime,
+      totalMinutes: t.totalMinutes
+    }))
+  ];
 
-  const directCards = q.direct
-    .map(
-      (d) => `
+  // Parse time to minutes for sorting
+  const parseTime = (timeStr: string) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  allSolutions.sort((a, b) => {
+    const arriveA = parseTime(a.arriveTime);
+    const arriveB = parseTime(b.arriveTime);
+    if (arriveA !== arriveB) return arriveA - arriveB;
+    return a.totalMinutes - b.totalMinutes;
+  });
+
+  const solutionCards = allSolutions.map((sol, idx) => {
+    if (sol.type === 'direct') {
+      const d = sol.data;
+      return `
       <div class="bg-white rounded-xl shadow p-4 md:p-5 border border-gray-100">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold">${escapeHtml(d.trainName)}</h3>
-          <span class="text-xs text-gray-500">${escapeHtml(d.dateLabel)}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs px-2 py-1 rounded bg-green-50 text-green-700">直达</span>
+            <span class="text-xs text-gray-500">${escapeHtml(d.dateLabel)}</span>
+          </div>
         </div>
         <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
           <div class="text-gray-900 font-medium">${escapeHtml(d.departTime)}</div>
@@ -30,23 +64,22 @@ export function renderResultHtml(q: QueryResult): string {
           <div></div>
           <div class="text-right text-gray-600">${escapeHtml(d.endStation)}</div>
         </div>
-      </div>`
-    )
-    .join("\n");
-
-  const transferBlocks = q.transfers
-    .map((t, idx) => {
+      </div>`;
+    } else {
+      const t = sol.data;
       return `
       <div class="bg-white rounded-xl shadow p-4 md:p-5 border border-gray-100 space-y-3">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold">方案 ${idx + 1}</h3>
-          <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">总用时 ${formatDuration(t.totalMinutes)}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">中转 · 总用时 ${formatDuration(t.totalMinutes)}</span>
+            <span class="text-xs text-gray-500">${escapeHtml(t.dateLabel)}</span>
+          </div>
         </div>
         <div class="grid gap-3">
           <div class="rounded-lg border border-gray-200 p-3">
             <div class="flex items-center justify-between mb-1">
               <div class="font-medium">${escapeHtml(t.leg1.trainName)}</div>
-              <div class="text-xs text-gray-500">${escapeHtml(t.dateLabel)}</div>
             </div>
             <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
               <div class="text-gray-900 font-medium">${escapeHtml(t.leg1.departTime)}</div>
@@ -65,7 +98,6 @@ export function renderResultHtml(q: QueryResult): string {
           <div class="rounded-lg border border-gray-200 p-3">
             <div class="flex items-center justify-between mb-1">
               <div class="font-medium">${escapeHtml(t.leg2.trainName)}</div>
-              <div class="text-xs text-gray-500">${escapeHtml(t.dateLabel)}</div>
             </div>
             <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
               <div class="text-gray-900 font-medium">${escapeHtml(t.leg2.departTime)}</div>
@@ -78,8 +110,8 @@ export function renderResultHtml(q: QueryResult): string {
           </div>
         </div>
       </div>`;
-    })
-    .join("\n");
+    }
+  }).join("\n");
 
   const body = `
   <div class="min-h-screen bg-gray-50">
@@ -92,13 +124,8 @@ export function renderResultHtml(q: QueryResult): string {
 
     <main class="container mx-auto px-4 py-4 md:py-6 space-y-6">
       <section class="space-y-3">
-        <h2 class="text-lg font-semibold">直达列车 <span class="text-sm font-normal text-gray-500">共 ${q.direct.length} 趟</span></h2>
-        ${hasDirect ? `<div class=\"grid gap-3 md:grid-cols-2\">${directCards}</div>` : `<div class=\"text-gray-500 text-sm\">暂无直达</div>`}
-      </section>
-
-      <section class="space-y-3">
-        <h2 class="text-lg font-semibold">中转方案 <span class="text-sm font-normal text-gray-500">共 ${q.transfers.length} 趟</span></h2>
-        ${hasTransfer ? `<div class=\"grid gap-3\">${transferBlocks}</div>` : `<div class=\"text-gray-500 text-sm\">暂无中转方案</div>`}
+        <h2 class="text-lg font-semibold">最佳方案 <span class="text-sm font-normal text-gray-500">共 ${allSolutions.length} 个方案 (按到达时间排序)</span></h2>
+        ${allSolutions.length > 0 ? `<div class=\"grid gap-3\">${solutionCards}</div>` : `<div class=\"text-gray-500 text-sm\">暂无可用方案</div>`}
       </section>
     </main>
   </div>`;
