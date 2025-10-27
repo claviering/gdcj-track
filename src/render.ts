@@ -60,7 +60,7 @@ export function renderResultHtml(q: QueryResult): string {
 
           <div class="text-center text-xs text-amber-700">在 ${escapeHtml(
             t.transferStation
-          )} 等待 ${formatDuration(t.waitMinutes)}</div>
+          )} 中转时间 ${formatDuration(t.waitMinutes)}</div>
 
           <div class="rounded-lg border border-gray-200 p-3">
             <div class="flex items-center justify-between mb-1">
@@ -92,12 +92,12 @@ export function renderResultHtml(q: QueryResult): string {
 
     <main class="container mx-auto px-4 py-4 md:py-6 space-y-6">
       <section class="space-y-3">
-        <h2 class="text-lg font-semibold">直达列车</h2>
+        <h2 class="text-lg font-semibold">直达列车 <span class="text-sm font-normal text-gray-500">共 ${q.direct.length} 趟</span></h2>
         ${hasDirect ? `<div class=\"grid gap-3 md:grid-cols-2\">${directCards}</div>` : `<div class=\"text-gray-500 text-sm\">暂无直达</div>`}
       </section>
 
       <section class="space-y-3">
-        <h2 class="text-lg font-semibold">中转方案</h2>
+        <h2 class="text-lg font-semibold">中转方案 <span class="text-sm font-normal text-gray-500">共 ${q.transfers.length} 趟</span></h2>
         ${hasTransfer ? `<div class=\"grid gap-3\">${transferBlocks}</div>` : `<div class=\"text-gray-500 text-sm\">暂无中转方案</div>`}
       </section>
     </main>

@@ -265,56 +265,6 @@ function buildDirectSolutions(store: DataStore, start: string, end: string, rele
   return unique;
 }
 
-function enumerateTransferCandidates(store: DataStore, start: string, end: string) {
-  type LegCandidate = { cityTrackId: number; track: LoadedTrack; fromPos: number; toPos: number };
-  const leg1: LegCandidate[] = [];
-  const leg2: LegCandidate[] = [];
-
-  for (const [cityTrackId, track] of store.loadedTracks) {
-    const posStart = track.positionByName.get(start);
-    if (posStart != null) {
-      const posEndOnSameTrack = track.positionByName.get(end);
-      const direction = posEndOnSameTrack != null && posEndOnSameTrack !== posStart ? Math.sign(posEndOnSameTrack - posStart) : 0;
-      for (const s of track.stations) {
-        const candidatePos = s.stationPosition;
-        if (candidatePos === posStart) continue;
-        if (direction > 0) {
-          if (candidatePos <= posStart) continue;
-          if (candidatePos >= posEndOnSameTrack!) continue;
-        } else if (direction < 0) {
-          if (candidatePos >= posStart) continue;
-          if (candidatePos <= posEndOnSameTrack!) continue;
-        } else if (candidatePos === posStart) {
-          continue;
-        }
-        leg1.push({ cityTrackId, track, fromPos: posStart, toPos: candidatePos });
-      }
-    }
-
-    const posEnd = track.positionByName.get(end);
-    if (posEnd != null) {
-      const posStartOnSameTrack = track.positionByName.get(start);
-      const direction = posStartOnSameTrack != null && posStartOnSameTrack !== posEnd ? Math.sign(posEnd - posStartOnSameTrack) : 0;
-      for (const s of track.stations) {
-        const candidatePos = s.stationPosition;
-        if (candidatePos === posEnd) continue;
-        if (direction > 0) {
-          if (posStartOnSameTrack != null && candidatePos <= posStartOnSameTrack) continue;
-          if (candidatePos >= posEnd) continue;
-        } else if (direction < 0) {
-          if (posStartOnSameTrack != null && candidatePos >= posStartOnSameTrack) continue;
-          if (candidatePos <= posEnd) continue;
-        } else if (candidatePos >= posEnd) {
-          continue;
-        }
-        leg2.push({ cityTrackId, track, fromPos: candidatePos, toPos: posEnd });
-      }
-    }
-  }
-
-  return { leg1, leg2 };
-}
-
 function buildTransferSolutions(store: DataStore, start: string, end: string, directTrackIds: Set<number>): TransferSolution[] {
   const validStations = computeRelevantStations(store, start, end);
   const dateLabel = todayMonthDayLabel();
@@ -474,9 +424,9 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
   const seen = new Set<string>();
   for (const candidate of solutions) {
     const item = candidate.solution;
+    // Deduplicate by first leg + transfer station only, keeping the fastest total time for each first-leg choice
     const leg1Key = item.leg1.trainName ? `name:${item.leg1.trainName}` : `leg1:${item.leg1.cityTrackId}:${item.leg1.departTime}-${item.leg1.arriveTime}`;
-    const leg2Key = item.leg2.trainName ? `name:${item.leg2.trainName}` : `leg2:${item.leg2.cityTrackId}:${item.leg2.departTime}-${item.leg2.arriveTime}`;
-    const key = `${item.transferStation}|${leg1Key}|${leg2Key}`;
+    const key = `${item.transferStation}|${leg1Key}`;
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(item);
