@@ -64,3 +64,7 @@ For live-reload development:
 - Time calculations assume same-day service; if an arrival/departure crosses midnight, the next-day wrap is handled simply by adding 24h when needed.
 - One transfer is supported. If no matching timing is found, you may see only direct results or none.
 - Tailwind CSS is included via CDN and does not require a build step.
+
+## test cases
+1. 小金口 to 科韵路 departing at 12:40
+2. 科韵路 to 清城 departing at 07:30

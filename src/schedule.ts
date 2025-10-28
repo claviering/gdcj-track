@@ -72,8 +72,9 @@ function computeRelevantStations(store: DataStore, start: string, end: string): 
   return validStations;
 }
 
-function computeRelevantTracks(store: DataStore, start: string, end: string): Set<number> {
-  const directTracks = new Set<number>();
+function computeRelevantTracks(store: DataStore, start: string, end: string): {directTrackIds: Set<number>, reverseTrackIds: Set<number>} {
+  const directTrackIds = new Set<number>();
+  const reverseTrackIds = new Set<number>();
 
   for (const [cityTrackId, track] of store.loadedTracks) {
     const startPos = track.positionByName.get(start);
@@ -82,11 +83,13 @@ function computeRelevantTracks(store: DataStore, start: string, end: string): Se
     const hasEnd = endPos != null;
 
     if (hasStart && hasEnd && startPos! < endPos!) {
-      directTracks.add(cityTrackId);
+      directTrackIds.add(cityTrackId);
+    } else if (hasStart && hasEnd && startPos! > endPos!) {
+      reverseTrackIds.add(cityTrackId);
     }
   }
 
-  return directTracks;
+  return {directTrackIds, reverseTrackIds};
 }
 
 function keepTopMutating(arr: TransferCandidate[], max: number) {
@@ -304,7 +307,7 @@ function buildDirectSolutions(store: DataStore, start: string, end: string, rele
   return unique;
 }
 
-function buildTransferSolutions(store: DataStore, start: string, end: string, directTrackIds: Set<number>, departTime?: string): TransferSolution[] {
+function buildTransferSolutions(store: DataStore, start: string, end: string, directTrackIds: Set<number>, reverseTrackIds: Set<number>, departTime?: string): TransferSolution[] {
   const validStations = computeRelevantStations(store, start, end);
   const dateLabel = todayMonthDayLabel();
   const solutions: TransferCandidate[] = [];
@@ -314,8 +317,13 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
   const hasTargetTime = targetDepartMinutes !== undefined && !Number.isNaN(targetDepartMinutes);
 
   // Build a map: transferStationName -> list of leg candidates for leg1 and leg2
-  const transferStations = new Map<string, { leg1: Array<{ track: LoadedTrack; fromPos: number; toPos: number }>; leg2: Array<{ track: LoadedTrack; fromPos: number; toPos: number }> }>();
+  // Track whether each candidate is from direct or reverse tracks
+  const transferStations = new Map<string, { 
+    leg1: Array<{ track: LoadedTrack; fromPos: number; toPos: number; isReverse: boolean }>; 
+    leg2: Array<{ track: LoadedTrack; fromPos: number; toPos: number; isReverse: boolean }> 
+  }>();
 
+  // Process direct tracks first
   const trackIds = directTrackIds.size > 0 ? directTrackIds : new Set(store.loadedTracks.keys());
 
   for (const cityTrackId of trackIds) {
@@ -323,6 +331,7 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
     if (!track) continue;
     const posStart = track.positionByName.get(start);
     const posEnd = track.positionByName.get(end);
+    const isReverse = false;
 
     if (posStart != null) {
       const direction = posEnd != null && posEnd !== posStart ? Math.sign(posEnd - posStart) : 0;
@@ -331,18 +340,19 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
         if (!validStations.has(s.stationName)) continue;
         if (candidatePos === posStart) continue;
         if (direction > 0) {
+          // track A -> B -> C -> D -> E -> F, start at B, end at E, can transfer at C or D
           if (candidatePos <= posStart) continue;
           if (candidatePos >= posEnd!) continue;
         } else if (direction < 0) {
-          if (candidatePos >= posStart) continue;
-          if (candidatePos <= posEnd!) continue;
+          // track F -> E -> D -> C -> B -> A, start at B, end at E, can transfer at A
+          if (candidatePos <= posStart) continue;
         } else if (candidatePos === posStart) {
           continue;
         }
 
         const key = s.stationName;
         if (!transferStations.has(key)) transferStations.set(key, { leg1: [], leg2: [] });
-        transferStations.get(key)!.leg1.push({ track, fromPos: posStart, toPos: candidatePos });
+        transferStations.get(key)!.leg1.push({ track, fromPos: posStart, toPos: candidatePos, isReverse });
       }
     }
 
@@ -357,25 +367,77 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
           if (posStartOnSameTrack != null && candidatePos <= posStartOnSameTrack) continue;
           if (candidatePos >= posEnd) continue;
         } else if (direction < 0) {
-          if (posStartOnSameTrack != null && candidatePos >= posStartOnSameTrack) continue;
-          if (candidatePos <= posEnd) continue;
+          if (posStartOnSameTrack != null && candidatePos <= posStartOnSameTrack) continue;
         } else if (candidatePos >= posEnd) {
           continue;
         }
 
         const key = s.stationName;
         if (!transferStations.has(key)) transferStations.set(key, { leg1: [], leg2: [] });
-        transferStations.get(key)!.leg2.push({ track, fromPos: candidatePos, toPos: posEnd });
+        transferStations.get(key)!.leg2.push({ track, fromPos: candidatePos, toPos: posEnd, isReverse });
       }
     }
   }
+
+  // Process reverse tracks separately for leg1 (start to transfer station)
+  for (const cityTrackId of reverseTrackIds) {
+    const track = store.loadedTracks.get(cityTrackId);
+    if (!track) continue;
+    const posStart = track.positionByName.get(start);
+    if (posStart == null) continue;
+    const isReverse = true;
+
+    // For reverse tracks: start at B, end at E on track F -> E -> D -> C -> B -> A
+    // Can transfer at stations after start position (A) in the track direction
+    for (const s of track.stations) {
+      const candidatePos = s.stationPosition;
+      if (!validStations.has(s.stationName)) continue;
+      if (candidatePos === posStart) continue;
+      // Allow transfers at stations after the start position (reverse direction)
+      if (candidatePos < posStart) continue;
+
+      const key = s.stationName;
+      if (!transferStations.has(key)) transferStations.set(key, { leg1: [], leg2: [] });
+      transferStations.get(key)!.leg1.push({ track, fromPos: posStart, toPos: candidatePos, isReverse });
+    }
+  }
+
+  // For leg2 of reverse track transfers, use direct tracks (from transfer station to end)
+  // This connects the reverse leg1 to a forward leg2
+  for (const cityTrackId of trackIds) {
+    const track = store.loadedTracks.get(cityTrackId);
+    if (!track) continue;
+    const posEnd = track.positionByName.get(end);
+    if (posEnd == null) continue;
+    const isReverse = true; // Mark as part of reverse transfer solution
+
+    for (const s of track.stations) {
+      const candidatePos = s.stationPosition;
+      if (!validStations.has(s.stationName)) continue;
+      if (candidatePos === posEnd) continue;
+      // Only consider stations before the end position (forward direction)
+      if (candidatePos >= posEnd) continue;
+
+      const key = s.stationName;
+      // Only add leg2 if we already have leg1 from reverse tracks at this transfer station
+      const existing = transferStations.get(key);
+      if (existing && existing.leg1.some(l => l.isReverse)) {
+        transferStations.get(key)!.leg2.push({ track, fromPos: candidatePos, toPos: posEnd, isReverse });
+      }
+    }
+  }
+
+  // Compute solutions and track maximum time for direct track transfers
+  let maxDirectTrackTime: number | null = null;
+  const directSolutions: TransferCandidate[] = [];
+  const reverseSolutions: TransferCandidate[] = [];
 
   for (const [transferStation, pair] of transferStations) {
     if (pair.leg1.length === 0 || pair.leg2.length === 0) continue;
 
     // If target time specified, first find the closest first-leg train
     type FirstLegOption = {
-      l1: { track: LoadedTrack; fromPos: number; toPos: number };
+      l1: { track: LoadedTrack; fromPos: number; toPos: number; isReverse: boolean };
       tt1: TrainTime;
       timing1: LegTiming;
       dep1m: number;
@@ -475,16 +537,38 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
             totalMinutes,
           };
 
-          solutions.push({ solution, arrivalMinutes: arr2m });
+          const candidate = { solution, arrivalMinutes: arr2m };
+
+          // Track if this involves any reverse track legs
+          const isReverseTransfer = l1.isReverse || l2.isReverse;
+
+          if (isReverseTransfer) {
+            reverseSolutions.push(candidate);
+          } else {
+            directSolutions.push(candidate);
+            // Update maximum direct track time
+            if (maxDirectTrackTime === null || totalMinutes > maxDirectTrackTime) {
+              maxDirectTrackTime = totalMinutes;
+            }
+          }
 
           // Periodically prune to keep memory bounded
-          if (solutions.length > PRUNE_TRIGGER_SIZE) {
-            keepTopMutating(solutions, INTERMEDIATE_TRANSFER_CAP);
+          if (directSolutions.length + reverseSolutions.length > PRUNE_TRIGGER_SIZE) {
+            keepTopMutating(directSolutions, INTERMEDIATE_TRANSFER_CAP);
+            keepTopMutating(reverseSolutions, INTERMEDIATE_TRANSFER_CAP);
           }
         }
       }
     }
   }
+
+  // Filter reverse solutions: only keep those faster than max direct track time
+  const filteredReverseSolutions = maxDirectTrackTime !== null
+    ? reverseSolutions.filter(candidate => candidate.solution.totalMinutes < maxDirectTrackTime!)
+    : reverseSolutions;
+
+  // Combine all solutions
+  solutions.push(...directSolutions, ...filteredReverseSolutions);
 
   // sort by arrival time of last leg, followed by total time and wait time
   solutions.sort((a, b) =>
@@ -510,10 +594,10 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
 }
 
 export function computeSchedule(store: DataStore, start: string, end: string, departTime?: string): QueryResult {
-  const directTrackIds = computeRelevantTracks(store, start, end);
+  const {directTrackIds, reverseTrackIds} = computeRelevantTracks(store, start, end);
   const direct = buildDirectSolutions(store, start, end, directTrackIds, departTime);
   // Always compute transfer solutions to find potentially faster routes
-  const transfers = buildTransferSolutions(store, start, end, directTrackIds, departTime);
+  const transfers = buildTransferSolutions(store, start, end, directTrackIds, reverseTrackIds, departTime);
   return {
     start,
     end,
