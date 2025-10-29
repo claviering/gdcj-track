@@ -67,4 +67,6 @@ For live-reload development:
 
 ## test cases
 1. 小金口 to 科韵路 departing at 12:40
-2. 科韵路 to 清城 departing at 07:30
+2. 樟木头东 to 科韵路 departing at 07:30
+3. 科韵路 to 清城 departing at 07:30
+4. 小金口 to 白云机场南 departing at 07:00

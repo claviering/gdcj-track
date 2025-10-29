@@ -7,7 +7,9 @@
   "scripts": {
     "build": "tsc -p .",
     "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts"
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "test:schedule": "node dist/tests/computeScheduleTest.js",
+    "postbuild": "npm run test:schedule"
   },
   "keywords": [],
   "author": "",
