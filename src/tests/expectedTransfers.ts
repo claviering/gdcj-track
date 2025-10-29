@@ -1,343 +1,17 @@
 import { TransferSolution, DirectSolution } from "../types";
+import { scenarioZhangmutoudongToKeyunlu } from "./scenarios/zhangmutoudongToKeyunlu";
+import { scenarioZhuliaoToKeyunluTransfers, scenarioZhuliaoToKeyunluDirect } from "./scenarios/zhuliaoToKeyunlu";
+import { scenarioXiaojinkouToBaiyunAirportSouth } from "./scenarios/xiaojinkouToBaiyunAirportSouth";
+import { scenarioYinpingToChangpingnanTransfers, scenarioYinpingToChangpingnanDirect } from "./scenarios/yinpingToChangpingnan";
 
 export type ScenarioCase = {
   name: string;
   start: string;
   end: string;
-  departTime: string;
+  departTime?: string;
   getExpectedDirect?: (dateLabel: string) => DirectSolution[];
   getExpectedTransfers: (dateLabel: string) => TransferSolution[];
 };
-
-function scenarioZhangmutoudongToKeyunlu(dateLabel: string): TransferSolution[] {
-  return [
-    {
-      type: "transfer",
-      transferStation: "广州莲花山",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4702/3",
-        fromStation: "樟木头东",
-        toStation: "广州莲花山",
-        departTime: "07:10",
-        arriveTime: "08:26",
-        durationMinutes: 76,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4812",
-        fromStation: "广州莲花山",
-        toStation: "科韵路",
-        departTime: "08:31",
-        arriveTime: "08:58",
-        durationMinutes: 27,
-      },
-      waitMinutes: 5,
-      dateLabel,
-      totalMinutes: 108,
-    },
-    {
-      type: "transfer",
-      transferStation: "东莞西",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4702/3",
-        fromStation: "樟木头东",
-        toStation: "东莞西",
-        departTime: "07:10",
-        arriveTime: "08:12",
-        durationMinutes: 62,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4812",
-        fromStation: "东莞西",
-        toStation: "科韵路",
-        departTime: "08:18",
-        arriveTime: "08:58",
-        durationMinutes: 40,
-      },
-      waitMinutes: 6,
-      dateLabel,
-      totalMinutes: 108,
-    },
-    {
-      type: "transfer",
-      transferStation: "麻涌",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4702/3",
-        fromStation: "樟木头东",
-        toStation: "麻涌",
-        departTime: "07:10",
-        arriveTime: "08:19",
-        durationMinutes: 69,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4812",
-        fromStation: "麻涌",
-        toStation: "科韵路",
-        departTime: "08:25",
-        arriveTime: "08:58",
-        durationMinutes: 33,
-      },
-      waitMinutes: 6,
-      dateLabel,
-      totalMinutes: 108,
-    },
-    {
-      type: "transfer",
-      transferStation: "西平西",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4702/3",
-        fromStation: "樟木头东",
-        toStation: "西平西",
-        departTime: "07:10",
-        arriveTime: "07:59",
-        durationMinutes: 49,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4842",
-        fromStation: "西平西",
-        toStation: "科韵路",
-        departTime: "08:37",
-        arriveTime: "09:19",
-        durationMinutes: 42,
-      },
-      waitMinutes: 38,
-      dateLabel,
-      totalMinutes: 129,
-    },
-    {
-      type: "transfer",
-      transferStation: "松山湖北",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4702/3",
-        fromStation: "樟木头东",
-        toStation: "松山湖北",
-        departTime: "07:10",
-        arriveTime: "07:41",
-        durationMinutes: 31,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4842",
-        fromStation: "松山湖北",
-        toStation: "科韵路",
-        departTime: "08:25",
-        arriveTime: "09:19",
-        durationMinutes: 54,
-      },
-      waitMinutes: 44,
-      dateLabel,
-      totalMinutes: 129,
-    },
-    {
-      type: "transfer",
-      transferStation: "常平南",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4702/3",
-        fromStation: "樟木头东",
-        toStation: "常平南",
-        departTime: "07:10",
-        arriveTime: "07:22",
-        durationMinutes: 12,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4842",
-        fromStation: "常平南",
-        toStation: "科韵路",
-        departTime: "08:17",
-        arriveTime: "09:19",
-        durationMinutes: 62,
-      },
-      waitMinutes: 55,
-      dateLabel,
-      totalMinutes: 129,
-    },
-  ];
-}
-
-function scenarioZhuliaoToKeyunlu(dateLabel: string): TransferSolution[] {
-  return [];
-}
-
-function scenarioZhuliaoToKeyunluDirect(dateLabel: string): DirectSolution[] {
-  return [
-    {
-      type: "direct",
-      cityTrackId: 240,
-      trainName: "S4731",
-      startStation: "竹料",
-      endStation: "科韵路",
-      departTime: "07:29",
-      arriveTime: "08:02",
-      dateLabel,
-      durationMinutes: 33,
-    },
-  ];
-}
-
-function scenarioXiaojinkouToBaiyunAirportSouth(dateLabel: string): TransferSolution[] {
-  return [
-    {
-      type: "transfer",
-      transferStation: "白云机场东",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "S4842",
-        fromStation: "小金口",
-        toStation: "白云机场东",
-        departTime: "07:38",
-        arriveTime: "09:39",
-        durationMinutes: 121,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4812",
-        fromStation: "白云机场东",
-        toStation: "白云机场南",
-        departTime: "09:46",
-        arriveTime: "09:51",
-        durationMinutes: 5,
-      },
-      waitMinutes: 7,
-      dateLabel,
-      totalMinutes: 133,
-    },
-    {
-      type: "transfer",
-      transferStation: "琶洲",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "S4842",
-        fromStation: "小金口",
-        toStation: "琶洲",
-        departTime: "07:38",
-        arriveTime: "09:13",
-        durationMinutes: 95,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4832",
-        fromStation: "琶洲",
-        toStation: "白云机场南",
-        departTime: "09:59",
-        arriveTime: "10:54",
-        durationMinutes: 55,
-      },
-      waitMinutes: 46,
-      dateLabel,
-      totalMinutes: 196,
-    },
-    {
-      type: "transfer",
-      transferStation: "科韵路",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "S4842",
-        fromStation: "小金口",
-        toStation: "科韵路",
-        departTime: "07:38",
-        arriveTime: "09:19",
-        durationMinutes: 101,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4832",
-        fromStation: "科韵路",
-        toStation: "白云机场南",
-        departTime: "10:05",
-        arriveTime: "10:54",
-        durationMinutes: 49,
-      },
-      waitMinutes: 46,
-      dateLabel,
-      totalMinutes: 196,
-    },
-    {
-      type: "transfer",
-      transferStation: "广州莲花山",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4712/3",
-        fromStation: "小金口",
-        toStation: "广州莲花山",
-        departTime: "07:04",
-        arriveTime: "09:03",
-        durationMinutes: 119,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4832",
-        fromStation: "广州莲花山",
-        toStation: "白云机场南",
-        departTime: "09:38",
-        arriveTime: "10:54",
-        durationMinutes: 76,
-      },
-      waitMinutes: 35,
-      dateLabel,
-      totalMinutes: 230,
-    },
-    {
-      type: "transfer",
-      transferStation: "东莞西",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4712/3",
-        fromStation: "小金口",
-        toStation: "东莞西",
-        departTime: "07:04",
-        arriveTime: "08:49",
-        durationMinutes: 105,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4832",
-        fromStation: "东莞西",
-        toStation: "白云机场南",
-        departTime: "09:25",
-        arriveTime: "10:54",
-        durationMinutes: 89,
-      },
-      waitMinutes: 36,
-      dateLabel,
-      totalMinutes: 230,
-    },
-    {
-      type: "transfer",
-      transferStation: "麻涌",
-      leg1: {
-        cityTrackId: 241,
-        trainName: "C4712/3",
-        fromStation: "小金口",
-        toStation: "麻涌",
-        departTime: "07:04",
-        arriveTime: "08:56",
-        durationMinutes: 112,
-      },
-      leg2: {
-        cityTrackId: 241,
-        trainName: "S4832",
-        fromStation: "麻涌",
-        toStation: "白云机场南",
-        departTime: "09:32",
-        arriveTime: "10:54",
-        durationMinutes: 82,
-      },
-      waitMinutes: 36,
-      dateLabel,
-      totalMinutes: 230,
-    },
-  ];
-}
 
 export const scenarioCases: ScenarioCase[] = [
   {
@@ -353,7 +27,7 @@ export const scenarioCases: ScenarioCase[] = [
     end: "科韵路",
     departTime: "07:20",
     getExpectedDirect: scenarioZhuliaoToKeyunluDirect,
-    getExpectedTransfers: scenarioZhuliaoToKeyunlu,
+    getExpectedTransfers: scenarioZhuliaoToKeyunluTransfers,
   },
   {
     name: "小金口 -> 白云机场南",
@@ -361,5 +35,12 @@ export const scenarioCases: ScenarioCase[] = [
     end: "白云机场南",
     departTime: "07:00",
     getExpectedTransfers: scenarioXiaojinkouToBaiyunAirportSouth,
+  },
+  {
+    name: "银瓶 -> 常平南",
+    start: "银瓶",
+    end: "常平南",
+    getExpectedDirect: scenarioYinpingToChangpingnanDirect,
+    getExpectedTransfers: scenarioYinpingToChangpingnanTransfers,
   },
 ];

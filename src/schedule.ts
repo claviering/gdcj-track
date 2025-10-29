@@ -214,69 +214,64 @@ function buildDirectSolutions(store: DataStore, start: string, end: string, rele
   const targetDepartMinutes = departTime ? parseHHmmToMinutes(departTime) : undefined;
   const hasTargetTime = targetDepartMinutes !== undefined && !Number.isNaN(targetDepartMinutes);
 
-  if (relevantTracks && relevantTracks.size > 0) {
-    for (const cityTrackId of relevantTracks) {
-      const track = store.loadedTracks.get(cityTrackId);
-      if (!track) continue;
-      const posStart = track.positionByName.get(start);
-      const posEnd = track.positionByName.get(end);
-      if (posStart == null || posEnd == null) continue;
-      if (posStart >= posEnd) continue; // wrong direction
+  // Determine which tracks to iterate over
+  const tracksToCheck = relevantTracks && relevantTracks.size > 0 
+    ? Array.from(relevantTracks).map(id => [id, store.loadedTracks.get(id)] as [number, LoadedTrack | undefined])
+    : Array.from(store.loadedTracks.entries());
 
-      const startStationId = track.stationIdByPosition.get(posStart)!;
-      const endStationId = track.stationIdByPosition.get(posEnd)!;
+  for (const [cityTrackId, track] of tracksToCheck) {
+    if (!track) continue;
+    
+    const posStart = track.positionByName.get(start);
+    const posEnd = track.positionByName.get(end);
+    if (posStart == null || posEnd == null) continue;
+    if (posStart >= posEnd) continue; // wrong direction
 
-      for (const tt of track.trainTimeList) {
-        const timing = findLegTiming(track, tt, startStationId, endStationId, posStart, posEnd);
-        if (!timing) continue;
-        
-        const trainName = tt.trainNumber?.name?.trim() ?? "";
-        const durationMinutes = timing.arriveMin - timing.departMin;
-        if (durationMinutes <= 0) continue;
-        const solution: DirectSolution = {
-          type: "direct",
-          cityTrackId,
-          trainName,
-          startStation: start,
-          endStation: end,
-          departTime: minutesToHHmm(timing.departMin),
-          arriveTime: minutesToHHmm(timing.arriveMin),
-          dateLabel,
-          durationMinutes,
-        };
-        candidates.push({ solution, departMinutes: timing.departMin, arriveMinutes: timing.arriveMin });
-      }
-    }
-  } else {
-    for (const [cityTrackId, track] of store.loadedTracks) {
-      const posStart = track.positionByName.get(start);
-      const posEnd = track.positionByName.get(end);
-      if (posStart == null || posEnd == null) continue;
-      if (posStart >= posEnd) continue; // wrong direction
+    const startStationId = track.stationIdByPosition.get(posStart)!;
+    const endStationId = track.stationIdByPosition.get(posEnd)!;
 
-      const startStationId = track.stationIdByPosition.get(posStart)!;
-      const endStationId = track.stationIdByPosition.get(posEnd)!;
+    for (const tt of track.trainTimeList) {
+      const list = tt.stationArriveTimeList;
+      if (!list || list.length === 0) continue;
 
-      for (const tt of track.trainTimeList) {
-        const timing = findLegTiming(track, tt, startStationId, endStationId, posStart, posEnd);
-        if (!timing) continue;
-        
-        const trainName = tt.trainNumber?.name?.trim() ?? "";
-        const durationMinutes = timing.arriveMin - timing.departMin;
-        if (durationMinutes <= 0) continue;
-        const solution: DirectSolution = {
-          type: "direct",
-          cityTrackId,
-          trainName,
-          startStation: start,
-          endStation: end,
-          departTime: minutesToHHmm(timing.departMin),
-          arriveTime: minutesToHHmm(timing.arriveMin),
-          dateLabel,
-          durationMinutes,
-        };
-        candidates.push({ solution, departMinutes: timing.departMin, arriveMinutes: timing.arriveMin });
-      }
+      // Use position-based indexing (positions are 1-indexed, array is 0-indexed)
+      const startIndex = posStart - 1;
+      const endIndex = posEnd - 1;
+      
+      // Validate: indices must be within bounds and stations must match
+      if (startIndex < 0 || endIndex >= list.length) continue;
+      if (list[startIndex].stationId !== startStationId || list[endIndex].stationId !== endStationId) continue;
+
+      const departTimeStr = list[startIndex].arriveTime;
+      const arriveTimeStr = list[endIndex].arriveTime;
+      
+      // Check if both times are valid (not "-" or missing)
+      if (!departTimeStr || departTimeStr === "-" || !arriveTimeStr || arriveTimeStr === "-") continue;
+
+      // Parse times
+      const departMin = parseHHmmToMinutes(departTimeStr);
+      let arriveMin = parseHHmmToMinutes(arriveTimeStr);
+      if (Number.isNaN(departMin) || Number.isNaN(arriveMin)) continue;
+      
+      // Handle cross-midnight arrivals
+      if (arriveMin < departMin) arriveMin += 24 * 60;
+      
+      const durationMinutes = arriveMin - departMin;
+      if (durationMinutes <= 0) continue;
+
+      const trainName = tt.trainNumber?.name?.trim() ?? "";
+      const solution: DirectSolution = {
+        type: "direct",
+        cityTrackId,
+        trainName,
+        startStation: start,
+        endStation: end,
+        departTime: minutesToHHmm(departMin),
+        arriveTime: minutesToHHmm(arriveMin),
+        dateLabel,
+        durationMinutes,
+      };
+      candidates.push({ solution, departMinutes: departMin, arriveMinutes: arriveMin });
     }
   }
 

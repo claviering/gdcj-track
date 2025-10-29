@@ -86,12 +86,7 @@ example content of the file:
                 "stationName": "飞霞",
                 "stationPosition": 1,
                 "status": 1,
-                "cityTrackId": 239,
-                "createTime": "2025-10-24 18:18:35",
-                "creator": "a292460111354ee6bc27d766a1e98b78",
-                "modifyTime": "2025-10-25 10:54:58",
-                "modifier": "a292460111354ee6bc27d766a1e98b78",
-                "isStartStation": null
+                "cityTrackId": 239
             }
         ],
         "trainTimeList": [
@@ -99,22 +94,14 @@ example content of the file:
                 "trainNumber": {
                     "trainNumberId": 11870,
                     "name": "C4902/3",
-                    "cityTrackId": 239,
-                    "createTime": null,
-                    "creator": null,
-                    "modifyTime": null,
-                    "modifier": null
+                    "cityTrackId": 239
                 },
                 "stationArriveTimeList": [
                     {
                         "id": 710854,
                         "stationId": 6337,
                         "trainNumberId": 11870,
-                        "arriveTime": "06:00",
-                        "createTime": null,
-                        "creator": null,
-                        "modifyTime": null,
-                        "modifier": null
+                        "arriveTime": "06:00"
                     }
                 ]
             }

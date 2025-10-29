@@ -32,7 +32,7 @@ async function main() {
   for (const scenario of scenarioCases) {
     const expectedTransfers = scenario.getExpectedTransfers(dateLabel);
     const expectedDirect = scenario.getExpectedDirect ? scenario.getExpectedDirect(dateLabel) : [];
-    const result = computeSchedule(store, scenario.start, scenario.end, scenario.departTime);
+    const result = computeSchedule(store, scenario.start, scenario.end, scenario.departTime ?? undefined);
 
     assert.equal(result.start, scenario.start, `Unexpected start station in ${scenario.name} result.`);
     assert.equal(result.end, scenario.end, `Unexpected end station in ${scenario.name} result.`);

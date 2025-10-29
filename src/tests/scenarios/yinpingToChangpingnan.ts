@@ -1,11 +1,11 @@
-add test case and move getExpectedTransfers and getExpectedDirect to divided files 
-银瓶 to 常平南, departTime null
-result:
-```json
-{
-  start: "银瓶",
-  end: "常平南",
-  direct: [
+import { TransferSolution, DirectSolution } from "../../types";
+
+export function scenarioYinpingToChangpingnanTransfers(dateLabel: string): TransferSolution[] {
+  return [];
+}
+
+export function scenarioYinpingToChangpingnanDirect(dateLabel: string): DirectSolution[] {
+  return [
     {
       type: "direct",
       cityTrackId: 242,
@@ -14,7 +14,7 @@ result:
       endStation: "常平南",
       departTime: "07:05",
       arriveTime: "07:22",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -25,7 +25,7 @@ result:
       endStation: "常平南",
       departTime: "07:45",
       arriveTime: "08:02",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -36,7 +36,7 @@ result:
       endStation: "常平南",
       departTime: "08:30",
       arriveTime: "08:48",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 18,
     },
     {
@@ -47,7 +47,7 @@ result:
       endStation: "常平南",
       departTime: "09:08",
       arriveTime: "09:25",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -58,7 +58,7 @@ result:
       endStation: "常平南",
       departTime: "09:56",
       arriveTime: "10:13",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -69,7 +69,7 @@ result:
       endStation: "常平南",
       departTime: "10:43",
       arriveTime: "11:04",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 21,
     },
     {
@@ -80,7 +80,7 @@ result:
       endStation: "常平南",
       departTime: "11:35",
       arriveTime: "11:52",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -91,7 +91,7 @@ result:
       endStation: "常平南",
       departTime: "12:31",
       arriveTime: "12:48",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -102,7 +102,7 @@ result:
       endStation: "常平南",
       departTime: "13:06",
       arriveTime: "13:30",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 24,
     },
     {
@@ -113,7 +113,7 @@ result:
       endStation: "常平南",
       departTime: "13:58",
       arriveTime: "14:15",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -124,7 +124,7 @@ result:
       endStation: "常平南",
       departTime: "14:47",
       arriveTime: "15:04",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -135,7 +135,7 @@ result:
       endStation: "常平南",
       departTime: "15:27",
       arriveTime: "15:44",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -146,7 +146,7 @@ result:
       endStation: "常平南",
       departTime: "16:11",
       arriveTime: "16:28",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -157,7 +157,7 @@ result:
       endStation: "常平南",
       departTime: "17:01",
       arriveTime: "17:18",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -168,7 +168,7 @@ result:
       endStation: "常平南",
       departTime: "17:43",
       arriveTime: "18:00",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -179,7 +179,7 @@ result:
       endStation: "常平南",
       departTime: "18:25",
       arriveTime: "18:42",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
     {
@@ -190,7 +190,7 @@ result:
       endStation: "常平南",
       departTime: "19:17",
       arriveTime: "19:35",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 18,
     },
     {
@@ -201,7 +201,7 @@ result:
       endStation: "常平南",
       departTime: "19:55",
       arriveTime: "20:18",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 23,
     },
     {
@@ -212,7 +212,7 @@ result:
       endStation: "常平南",
       departTime: "20:48",
       arriveTime: "21:13",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 25,
     },
     {
@@ -223,12 +223,8 @@ result:
       endStation: "常平南",
       departTime: "21:47",
       arriveTime: "22:04",
-      dateLabel: "10月29日",
+      dateLabel,
       durationMinutes: 17,
     },
-  ],
-  transfers: [
-  ],
-  generatedAt: "2025-10-29T07:13:43.647Z",
+  ];
 }
-```
