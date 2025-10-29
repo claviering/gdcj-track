@@ -1,10 +1,11 @@
-import { TransferSolution } from "../types";
+import { TransferSolution, DirectSolution } from "../types";
 
 export type ScenarioCase = {
   name: string;
   start: string;
   end: string;
   departTime: string;
+  getExpectedDirect?: (dateLabel: string) => DirectSolution[];
   getExpectedTransfers: (dateLabel: string) => TransferSolution[];
 };
 
@@ -159,6 +160,26 @@ function scenarioZhangmutoudongToKeyunlu(dateLabel: string): TransferSolution[] 
       waitMinutes: 55,
       dateLabel,
       totalMinutes: 129,
+    },
+  ];
+}
+
+function scenarioZhuliaoToKeyunlu(dateLabel: string): TransferSolution[] {
+  return [];
+}
+
+function scenarioZhuliaoToKeyunluDirect(dateLabel: string): DirectSolution[] {
+  return [
+    {
+      type: "direct",
+      cityTrackId: 240,
+      trainName: "S4731",
+      startStation: "竹料",
+      endStation: "科韵路",
+      departTime: "07:29",
+      arriveTime: "08:02",
+      dateLabel,
+      durationMinutes: 33,
     },
   ];
 }
@@ -325,6 +346,14 @@ export const scenarioCases: ScenarioCase[] = [
     end: "科韵路",
     departTime: "07:00",
     getExpectedTransfers: scenarioZhangmutoudongToKeyunlu,
+  },
+  {
+    name: "竹料 -> 科韵路",
+    start: "竹料",
+    end: "科韵路",
+    departTime: "07:20",
+    getExpectedDirect: scenarioZhuliaoToKeyunluDirect,
+    getExpectedTransfers: scenarioZhuliaoToKeyunlu,
   },
   {
     name: "小金口 -> 白云机场南",

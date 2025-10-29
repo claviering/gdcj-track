@@ -1,7 +1,7 @@
 import { strict as assert } from "node:assert";
 import { loadAllData } from "../dataLoader";
 import { computeSchedule } from "../schedule";
-import { TransferSolution } from "../types";
+import { TransferSolution, DirectSolution } from "../types";
 import { todayMonthDayLabel } from "../utils";
 import { scenarioCases } from "./expectedTransfers";
 
@@ -15,18 +15,34 @@ function sortTransfers(transfers: TransferSolution[]): TransferSolution[] {
     });
 }
 
+function sortDirect(direct: DirectSolution[]): DirectSolution[] {
+  return [...direct]
+    .map((item) => JSON.parse(JSON.stringify(item)) as DirectSolution)
+    .sort((a, b) => {
+      const keyA = `${a.trainName}|${a.departTime}|${a.arriveTime}`;
+      const keyB = `${b.trainName}|${b.departTime}|${b.arriveTime}`;
+      return keyA.localeCompare(keyB);
+    });
+}
+
 async function main() {
   const store = await loadAllData(process.cwd());
   const dateLabel = todayMonthDayLabel();
 
   for (const scenario of scenarioCases) {
     const expectedTransfers = scenario.getExpectedTransfers(dateLabel);
+    const expectedDirect = scenario.getExpectedDirect ? scenario.getExpectedDirect(dateLabel) : [];
     const result = computeSchedule(store, scenario.start, scenario.end, scenario.departTime);
 
     assert.equal(result.start, scenario.start, `Unexpected start station in ${scenario.name} result.`);
     assert.equal(result.end, scenario.end, `Unexpected end station in ${scenario.name} result.`);
-    assert.deepStrictEqual(result.direct, [], `Expected no direct solutions for ${scenario.name}.`);
 
+    // Check direct solutions
+    const sortedActualDirect = sortDirect(result.direct);
+    const sortedExpectedDirect = sortDirect(expectedDirect);
+    assert.deepStrictEqual(sortedActualDirect, sortedExpectedDirect, `Direct solutions did not match expected output for ${scenario.name}.`);
+
+    // Check transfer solutions
     const sortedActual = sortTransfers(result.transfers);
     const sortedExpected = sortTransfers(expectedTransfers);
 
@@ -38,7 +54,7 @@ async function main() {
     );
 
     console.log(
-      `[SCENARIO] ${scenario.name}: ${result.transfers.length} transfer solutions matched expected output.`
+      `[SCENARIO] ${scenario.name}: ${result.direct.length} direct + ${result.transfers.length} transfer solutions matched expected output.`
     );
   }
 

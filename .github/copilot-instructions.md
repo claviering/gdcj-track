@@ -22,10 +22,9 @@
 
 ## Dev workflows
 - Install/build/start from project root:
-  - `npm install`
-  - `npm run build`
-  - `npm start` (serves on `http://localhost:3000` or `PORT` env)
-- Live dev (auto-reload): `npm run dev` (uses `ts-node-dev`).
+  - `yarn install`
+  - `yarn dev` (serves on `http://localhost:3000` or `PORT` env)
+- Live dev (auto-reload): `yarn run dev` (uses `ts-node-dev`).
 - TypeScript: strict mode, outputs to `dist/`. No bundler needed.
 
 ## Conventions and patterns to follow
@@ -39,7 +38,7 @@
 - To add APIs: reuse `DataStore` from `ensureDataLoaded()`; prefer read-only access patterns and avoid mutating loaded indices.
 
 ## testing
-using `Invoke-RestMethod -Uri "http://localhost:3000/train-schedule?start=%E9%93%B6%E7%93%B6&end=%E7%A7%91%E9%9F%B5%E8%B7%AF" -Method Get` in PowerShell to test endpoints.
+- `yarn build` and auto run tests with `yarn postbuild`.
 
 ## about the SingleCityTrack.json file
 
