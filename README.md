@@ -70,3 +70,4 @@ For live-reload development:
 2. 樟木头东 to 科韵路 departing at 07:30
 3. 科韵路 to 清城 departing at 07:30
 4. 小金口 to 白云机场南 departing at 07:00
+5. 小金口 to 白云机场北 departing at 12:30 // 先反方向中转，再上快车

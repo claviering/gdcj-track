@@ -598,11 +598,17 @@ export function computeSchedule(store: DataStore, start: string, end: string, de
   const direct = buildDirectSolutions(store, start, end, directTrackIds, departTime);
   // Always compute transfer solutions to find potentially faster routes
   const transfers = buildTransferSolutions(store, start, end, directTrackIds, reverseTrackIds, departTime);
+  
+  // Filter transfers: only keep those faster than the fastest direct route
+  const filteredTransfers = direct.length > 0
+    ? transfers.filter(t => t.totalMinutes < direct[0].durationMinutes)
+    : transfers;
+  
   return {
     start,
     end,
     direct,
-    transfers,
+    transfers: filteredTransfers,
     generatedAt: new Date().toISOString(),
   };
 }
