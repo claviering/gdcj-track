@@ -9,8 +9,8 @@ function sortTransfers(transfers: TransferSolution[]): TransferSolution[] {
   return [...transfers]
     .map((item) => JSON.parse(JSON.stringify(item)) as TransferSolution)
     .sort((a, b) => {
-      const keyA = `${a.leg1.trainName}|${a.leg1.fromStation}|${a.transferStation}|${a.leg2.trainName}|${a.leg2.departTime}`;
-      const keyB = `${b.leg1.trainName}|${b.leg1.fromStation}|${b.transferStation}|${b.leg2.trainName}|${b.leg2.departTime}`;
+      const keyA = `${a.legs[0].trainName}|${a.legs[0].fromStation}|${a.transferStations.join('|')}|${a.legs[a.legs.length - 1].trainName}|${a.legs[a.legs.length - 1].departTime}`;
+      const keyB = `${b.legs[0].trainName}|${b.legs[0].fromStation}|${b.transferStations.join('|')}|${b.legs[b.legs.length - 1].trainName}|${b.legs[b.legs.length - 1].departTime}`;
       return keyA.localeCompare(keyB);
     });
 }

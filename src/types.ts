@@ -66,10 +66,9 @@ export type TransferLeg = {
 
 export type TransferSolution = {
   type: "transfer";
-  transferStation: string;
-  leg1: TransferLeg;
-  leg2: TransferLeg;
-  waitMinutes: number;
+  transferStations: string[]; // Array of transfer station names
+  legs: TransferLeg[]; // Array of legs (2 for one transfer, 3 for two transfers)
+  waitMinutes: number[]; // Array of wait times between legs
   dateLabel: string;
   totalMinutes: number;
 };

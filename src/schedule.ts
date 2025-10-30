@@ -7,7 +7,7 @@ const MAX_DIRECT_RESULTS = 500;
 const MAX_TRANSFER_RESULTS = 500; // final results
 const INTERMEDIATE_TRANSFER_CAP = MAX_TRANSFER_RESULTS * 2; // periodic pruning threshold
 const PRUNE_TRIGGER_SIZE = MAX_TRANSFER_RESULTS * 4; // when to prune during enumeration
-const MAX_WAIT_MINUTES = 180; // ignore transfer options with overly long waits (e.g., > 3h)
+const MAX_WAIT_MINUTES = 50; // ignore transfer options with overly long waits (e.g., > 3h)
 
 type TransferCandidate = {
   solution: TransferSolution;
@@ -95,7 +95,7 @@ function computeRelevantTracks(store: DataStore, start: string, end: string): {d
 function keepTopMutating(arr: TransferCandidate[], max: number) {
   arr.sort((a, b) =>
     a.solution.totalMinutes - b.solution.totalMinutes ||
-    a.solution.waitMinutes - b.solution.waitMinutes ||
+    a.solution.waitMinutes.reduce((sum, w) => sum + w, 0) - b.solution.waitMinutes.reduce((sum, w) => sum + w, 0) ||
     a.arrivalMinutes - b.arrivalMinutes
   );
   if (arr.length > max) arr.length = max;
@@ -524,10 +524,9 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
 
           const solution: TransferSolution = {
             type: "transfer",
-            transferStation,
-            leg1,
-            leg2,
-            waitMinutes: wait,
+            transferStations: [transferStation],
+            legs: [leg1, leg2],
+            waitMinutes: [wait],
             dateLabel,
             totalMinutes,
           };
@@ -565,11 +564,37 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
   // Combine all solutions
   solutions.push(...directSolutions, ...filteredReverseSolutions);
 
+  // If no direct tracks available, try two-transfer solutions
+  if (directTrackIds.size === 0 && reverseTrackIds.size === 0) {
+    // Get the maximum time from one-transfer solutions to use as threshold
+    const maxOneTransferTime = solutions.length > 0
+      ? Math.max(...solutions.map(s => s.solution.totalMinutes))
+      : null;
+
+    const twoTransferSolutions = buildTwoTransferSolutions(store, start, end, departTime);
+    if (maxOneTransferTime !== null) {
+      const fasterTwoTransfers = twoTransferSolutions.filter(t => t.totalMinutes < maxOneTransferTime);
+      // Convert to TransferCandidate format
+      const twoTransferCandidates: TransferCandidate[] = fasterTwoTransfers.map(sol => ({
+        solution: sol,
+        arrivalMinutes: parseHHmmToMinutes(sol.legs[sol.legs.length - 1].arriveTime)
+      }));
+      solutions.push(...twoTransferCandidates);
+    } else if (twoTransferSolutions.length > 0) {
+      // If no one-transfer solutions, include all two-transfer solutions
+      const twoTransferCandidates: TransferCandidate[] = twoTransferSolutions.map(sol => ({
+        solution: sol,
+        arrivalMinutes: parseHHmmToMinutes(sol.legs[sol.legs.length - 1].arriveTime)
+      }));
+      solutions.push(...twoTransferCandidates);
+    }
+  }
+
   // sort by arrival time of last leg, followed by total time and wait time
   solutions.sort((a, b) =>
     a.arrivalMinutes - b.arrivalMinutes ||
     a.solution.totalMinutes - b.solution.totalMinutes ||
-    a.solution.waitMinutes - b.solution.waitMinutes
+    a.solution.waitMinutes.reduce((sum, w) => sum + w, 0) - b.solution.waitMinutes.reduce((sum, w) => sum + w, 0)
   );
 
   const unique: TransferSolution[] = [];
@@ -577,8 +602,9 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
   for (const candidate of solutions) {
     const item = candidate.solution;
     // Deduplicate by first leg + transfer station only, keeping the fastest total time for each first-leg choice
-    const leg1Key = item.leg1.trainName ? `name:${item.leg1.trainName}` : `leg1:${item.leg1.cityTrackId}:${item.leg1.departTime}-${item.leg1.arriveTime}`;
-    const key = `${item.transferStation}|${leg1Key}`;
+    const leg1 = item.legs[0];
+    const leg1Key = leg1.trainName ? `name:${leg1.trainName}` : `leg1:${leg1.cityTrackId}:${leg1.departTime}-${leg1.arriveTime}`;
+    const key = `${item.transferStations.join('|')}|${leg1Key}`;
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(item);
@@ -588,10 +614,174 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
   return unique;
 }
 
+function buildTwoTransferSolutions(store: DataStore, start: string, end: string, departTime?: string): TransferSolution[] {
+  const validStations = computeRelevantStations(store, start, end);
+  const dateLabel = todayMonthDayLabel();
+  const solutions: TransferCandidate[] = [];
+  
+  // Parse the target departure time if provided
+  const targetDepartMinutes = departTime ? parseHHmmToMinutes(departTime) : undefined;
+  const hasTargetTime = targetDepartMinutes !== undefined && !Number.isNaN(targetDepartMinutes);
+
+  // For two transfers: start → transfer1 → transfer2 → end
+  // We need to find all valid combinations of two intermediate stations
+  const validStationsArray = Array.from(validStations).filter(s => s !== start && s !== end);
+  
+  // Build solutions for each pair of transfer stations
+  for (let i = 0; i < validStationsArray.length; i++) {
+    const transfer1 = validStationsArray[i];
+    
+    // Get first leg options: start → transfer1
+    const leg1Options = buildDirectSolutions(store, start, transfer1);
+    if (leg1Options.length === 0) continue;
+    
+    // If target time specified, find the closest first-leg train departing at or after target time
+    const leg1Candidates = leg1Options.map(leg1 => ({
+      leg1,
+      departMinutes: parseHHmmToMinutes(leg1.departTime)
+    }));
+    
+    let firstLegsToProcess = leg1Options;
+    if (hasTargetTime) {
+      const closest = findClosestDepartingAtOrAfter(leg1Candidates, targetDepartMinutes!);
+      if (!closest) continue; // No trains depart at or after target time
+      firstLegsToProcess = [closest.leg1];
+    }
+    
+    for (let j = 0; j < validStationsArray.length; j++) {
+      if (i === j) continue; // Same station can't be both transfers
+      const transfer2 = validStationsArray[j];
+      
+      // Get second leg options: transfer1 → transfer2
+      const leg2Options = buildDirectSolutions(store, transfer1, transfer2);
+      if (leg2Options.length === 0) continue;
+      
+      // Get third leg options: transfer2 → end
+      const leg3Options = buildDirectSolutions(store, transfer2, end);
+      if (leg3Options.length === 0) continue;
+      
+      // Combine all three legs
+      for (const leg1 of firstLegsToProcess) {
+        const arr1m = parseHHmmToMinutes(leg1.arriveTime);
+        if (Number.isNaN(arr1m)) continue;
+        
+        for (const leg2 of leg2Options) {
+          let dep2m = parseHHmmToMinutes(leg2.departTime);
+          let arr2m = parseHHmmToMinutes(leg2.arriveTime);
+          if (Number.isNaN(dep2m) || Number.isNaN(arr2m)) continue;
+          
+          // Handle cross-midnight for leg2
+          while (dep2m < arr1m) {
+            dep2m += 24 * 60;
+            arr2m += 24 * 60;
+          }
+          
+          const wait1 = dep2m - arr1m;
+          // Skip if same train continues (wait time is 0 and same train number)
+          if (wait1 <= 0 || leg1.trainName === leg2.trainName || wait1 > MAX_WAIT_MINUTES) continue;
+          
+          for (const leg3 of leg3Options) {
+            let dep3m = parseHHmmToMinutes(leg3.departTime);
+            let arr3m = parseHHmmToMinutes(leg3.arriveTime);
+            if (Number.isNaN(dep3m) || Number.isNaN(arr3m)) continue;
+            
+            // Handle cross-midnight for leg3
+            while (dep3m < arr2m) {
+              dep3m += 24 * 60;
+              arr3m += 24 * 60;
+            }
+            
+            const wait2 = dep3m - arr2m;
+            // Skip if same train continues (wait time is 0 and same train number)
+            if (wait2 <= 0 || leg2.trainName === leg3.trainName || wait2 > MAX_WAIT_MINUTES) continue;
+            
+            const totalMinutes = leg1.durationMinutes + wait1 + leg2.durationMinutes + wait2 + leg3.durationMinutes;
+            
+            // Represent the complete three-leg journey as two connected transfer solutions
+            // First solution: start → transfer1 → transfer2
+            const firstLeg: TransferLeg = {
+              cityTrackId: leg1.cityTrackId,
+              trainName: leg1.trainName,
+              fromStation: start,
+              toStation: transfer1,
+              departTime: leg1.departTime,
+              arriveTime: minutesToHHmm(arr1m),
+              durationMinutes: leg1.durationMinutes,
+            };
+            
+            const secondLeg: TransferLeg = {
+              cityTrackId: leg2.cityTrackId,
+              trainName: leg2.trainName,
+              fromStation: transfer1,
+              toStation: transfer2,
+              departTime: minutesToHHmm(dep2m),
+              arriveTime: minutesToHHmm(arr2m),
+              durationMinutes: leg2.durationMinutes,
+            };
+            
+            const thirdLeg: TransferLeg = {
+              cityTrackId: leg3.cityTrackId,
+              trainName: leg3.trainName,
+              fromStation: transfer2,
+              toStation: end,
+              departTime: minutesToHHmm(dep3m),
+              arriveTime: minutesToHHmm(arr3m),
+              durationMinutes: leg3.durationMinutes,
+            };
+            
+            // Create the complete two-transfer solution showing the full journey
+            const solution: TransferSolution = {
+              type: "transfer",
+              transferStations: [transfer1, transfer2],
+              legs: [firstLeg, secondLeg, thirdLeg],
+              waitMinutes: [wait1, wait2],
+              dateLabel,
+              totalMinutes,
+            };
+            
+            solutions.push({ 
+              solution, 
+              arrivalMinutes: arr3m  // Use final arrival time
+            });
+          }
+        }
+      }
+      
+      // Limit solutions to avoid memory issues
+      if (solutions.length > PRUNE_TRIGGER_SIZE) {
+        keepTopMutating(solutions, INTERMEDIATE_TRANSFER_CAP);
+      }
+    }
+  }
+  
+  // Sort and deduplicate
+  solutions.sort((a, b) =>
+    a.arrivalMinutes - b.arrivalMinutes ||
+    a.solution.totalMinutes - b.solution.totalMinutes ||
+    a.solution.waitMinutes.reduce((sum, w) => sum + w, 0) - b.solution.waitMinutes.reduce((sum, w) => sum + w, 0)
+  );
+  
+  const unique: TransferSolution[] = [];
+  const seen = new Set<string>();
+  for (const candidate of solutions) {
+    const item = candidate.solution;
+    const leg1 = item.legs[0];
+    const leg1Key = leg1.trainName ? `name:${leg1.trainName}` : `leg1:${leg1.cityTrackId}:${leg1.departTime}-${leg1.arriveTime}`;
+    const key = `${item.transferStations.join('|')}|${leg1Key}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(item);
+    if (unique.length >= MAX_TRANSFER_RESULTS) break;
+  }
+  
+  return unique;
+}
+
 export function computeSchedule(store: DataStore, start: string, end: string, departTime?: string): QueryResult {
   const {directTrackIds, reverseTrackIds} = computeRelevantTracks(store, start, end);
   const direct = buildDirectSolutions(store, start, end, directTrackIds, departTime);
-  // Always compute transfer solutions to find potentially faster routes
+  
+  // Always compute transfer solutions (which now includes two-transfer solutions when beneficial)
   const transfers = buildTransferSolutions(store, start, end, directTrackIds, reverseTrackIds, departTime);
   
   // Filter transfers: only keep those faster than the fastest direct route

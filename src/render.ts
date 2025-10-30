@@ -1,4 +1,4 @@
-import { QueryResult } from "./types";
+import { QueryResult, TransferLeg } from "./types";
 import { formatDuration } from "./utils";
 
 function escapeHtml(s: string) {
@@ -25,8 +25,8 @@ export function renderResultHtml(q: QueryResult): string {
     ...q.transfers.map(t => ({
       type: 'transfer' as const,
       data: t,
-      arriveTime: t.leg2.arriveTime,
-      departTime: t.leg1.departTime,
+      arriveTime: t.legs[t.legs.length - 1].arriveTime,
+      departTime: t.legs[0].departTime,
       totalMinutes: t.totalMinutes
     }))
   ];
@@ -67,47 +67,42 @@ export function renderResultHtml(q: QueryResult): string {
       </div>`;
     } else {
       const t = sol.data;
+      
+      // Build leg cards for each leg in the journey
+      const legCards = t.legs.map((leg: TransferLeg, legIdx: number) => {
+        const isLastLeg = legIdx === t.legs.length - 1;
+        return `
+          <div class="rounded-lg border border-gray-200 p-3">
+            <div class="flex items-center justify-between mb-1">
+              <div class="font-medium">${escapeHtml(leg.trainName)}</div>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
+              <div class="text-gray-900 font-medium">${escapeHtml(leg.departTime)}</div>
+              <div class="text-center text-gray-500">用时 ${formatDuration(leg.durationMinutes)}</div>
+              <div class="text-right text-gray-900 font-medium">${escapeHtml(leg.arriveTime)}</div>
+              <div class="text-gray-600">${escapeHtml(leg.fromStation)}</div>
+              <div></div>
+              <div class="text-right text-gray-600">${escapeHtml(leg.toStation)}</div>
+            </div>
+          </div>
+          ${!isLastLeg ? `<div class="text-center text-xs text-amber-700">在 ${escapeHtml(t.transferStations[legIdx])} 中转时间 ${formatDuration(t.waitMinutes[legIdx])}</div>` : ''}
+        `;
+      }).join('\n');
+      
+      const transferCount = t.transferStations.length;
+      const transferLabel = transferCount === 1 ? '中转' : `${transferCount}次中转`;
+      
       return `
       <div class="bg-white rounded-xl shadow p-4 md:p-5 border border-gray-100 space-y-3">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold">方案 ${idx + 1}</h3>
           <div class="flex items-center gap-2">
-            <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">中转 · 总用时 ${formatDuration(t.totalMinutes)}</span>
+            <span class="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700">${transferLabel} · 总用时 ${formatDuration(t.totalMinutes)}</span>
             <span class="text-xs text-gray-500">${escapeHtml(t.dateLabel)}</span>
           </div>
         </div>
         <div class="grid gap-3">
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">${escapeHtml(t.leg1.trainName)}</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">${escapeHtml(t.leg1.departTime)}</div>
-              <div class="text-center text-gray-500">用时 ${formatDuration(t.leg1.durationMinutes)}</div>
-              <div class="text-right text-gray-900 font-medium">${escapeHtml(t.leg1.arriveTime)}</div>
-              <div class="text-gray-600">${escapeHtml(t.leg1.fromStation)}</div>
-              <div></div>
-              <div class="text-right text-gray-600">${escapeHtml(t.leg1.toStation)}</div>
-            </div>
-          </div>
-
-          <div class="text-center text-xs text-amber-700">在 ${escapeHtml(
-            t.transferStation
-          )} 中转时间 ${formatDuration(t.waitMinutes)}</div>
-
-          <div class="rounded-lg border border-gray-200 p-3">
-            <div class="flex items-center justify-between mb-1">
-              <div class="font-medium">${escapeHtml(t.leg2.trainName)}</div>
-            </div>
-            <div class="grid grid-cols-3 gap-2 text-sm md:text-base">
-              <div class="text-gray-900 font-medium">${escapeHtml(t.leg2.departTime)}</div>
-              <div class="text-center text-gray-500">用时 ${formatDuration(t.leg2.durationMinutes)}</div>
-              <div class="text-right text-gray-900 font-medium">${escapeHtml(t.leg2.arriveTime)}</div>
-              <div class="text-gray-600">${escapeHtml(t.leg2.fromStation)}</div>
-              <div></div>
-              <div class="text-right text-gray-600">${escapeHtml(t.leg2.toStation)}</div>
-            </div>
-          </div>
+          ${legCards}
         </div>
       </div>`;
     }
