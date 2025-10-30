@@ -137,32 +137,5 @@ export function scenarioZhangmutoudongToKeyunlu(dateLabel: string): TransferSolu
       dateLabel,
       totalMinutes: 129,
     },
-    {
-      type: "transfer",
-      transferStations: ["常平南"],
-      legs: [
-        {
-          cityTrackId: 241,
-          trainName: "C4702/3",
-          fromStation: "樟木头东",
-          toStation: "常平南",
-          departTime: "07:10",
-          arriveTime: "07:22",
-          durationMinutes: 12,
-        },
-        {
-          cityTrackId: 241,
-          trainName: "S4842",
-          fromStation: "常平南",
-          toStation: "科韵路",
-          departTime: "08:17",
-          arriveTime: "09:19",
-          durationMinutes: 62,
-        },
-      ],
-      waitMinutes: [55],
-      dateLabel,
-      totalMinutes: 129,
-    },
   ];
 }
