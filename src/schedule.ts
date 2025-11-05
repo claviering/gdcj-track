@@ -490,7 +490,7 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
           }
 
           const wait = dep2m - arr1m;
-          if (wait < 0) continue;
+          if (wait <= 0) continue;
           if (wait > MAX_WAIT_MINUTES) continue; // skip impractically long transfers
           const leg1Dur = arr1m - dep1m;
           const leg2Dur = arr2m - dep2m;

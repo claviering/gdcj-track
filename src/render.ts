@@ -12,7 +12,14 @@ function escapeHtml(s: string) {
 
 export function renderResultHtml(q: QueryResult): string {
   // Merge all solutions and sort by arrival time
-  type Solution = { type: 'direct' | 'transfer'; data: any; arriveTime: string; departTime: string; totalMinutes: number };
+  type Solution = {
+    type: 'direct' | 'transfer';
+    data: any;
+    arriveTime: string;
+    departTime: string;
+    totalMinutes: number;
+    firstDurationMinutes: number;
+  };
   
   const allSolutions: Solution[] = [
     ...q.direct.map(d => ({
@@ -20,14 +27,16 @@ export function renderResultHtml(q: QueryResult): string {
       data: d,
       arriveTime: d.arriveTime,
       departTime: d.departTime,
-      totalMinutes: d.durationMinutes
+      totalMinutes: d.durationMinutes,
+      firstDurationMinutes: d.durationMinutes,
     })),
     ...q.transfers.map(t => ({
       type: 'transfer' as const,
       data: t,
       arriveTime: t.legs[t.legs.length - 1].arriveTime,
       departTime: t.legs[0].departTime,
-      totalMinutes: t.totalMinutes
+      totalMinutes: t.totalMinutes,
+      firstDurationMinutes: t.legs[0]?.durationMinutes ?? t.totalMinutes,
     }))
   ];
 
@@ -41,6 +50,9 @@ export function renderResultHtml(q: QueryResult): string {
     const arriveA = parseTime(a.arriveTime);
     const arriveB = parseTime(b.arriveTime);
     if (arriveA !== arriveB) return arriveA - arriveB;
+    if (a.firstDurationMinutes !== b.firstDurationMinutes) {
+      return a.firstDurationMinutes - b.firstDurationMinutes;
+    }
     return a.totalMinutes - b.totalMinutes;
   });
 
