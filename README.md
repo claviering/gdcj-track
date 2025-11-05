@@ -2,9 +2,13 @@
 
 A high-performance Koa server that returns direct and 1-transfer train schedules between two stations. Data is loaded once at startup from the provided JSON files and kept in memory.
 
-![Train Schedule Screenshot](./images/index.png)
+<div style="text-align: center;">
+  <img src="./images/index.png" alt="" height="400" />
+</div>
 
-<img src="./images/result.png" alt="Mobile Screenshot" height="400" style="margin:auto;display:block;"/>
+<div style="text-align: center;">
+  <img src="./images/result.png" alt="" height="400" />
+</div>
 
 ## Features
 
