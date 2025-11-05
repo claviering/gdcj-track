@@ -2,6 +2,10 @@
 
 A high-performance Koa server that returns direct and 1-transfer train schedules between two stations. Data is loaded once at startup from the provided JSON files and kept in memory.
 
+![Train Schedule Screenshot](./images/index.png)
+
+<img src="./images/result.png" alt="Mobile Screenshot" height="400" style="margin:auto;display:block;"/>
+
 ## Features
 
 - Koa + TypeScript, fast in-memory lookups
@@ -14,6 +18,15 @@ A high-performance Koa server that returns direct and 1-transfer train schedules
 
 - Node.js 18+
 - yarn
+
+## Development
+
+For live-reload development:
+
+```shell
+# Start in dev mode (ts-node-dev)
+ yarn run dev
+```
 
 ## Setup
 
@@ -50,14 +63,6 @@ If any validation fails:
   - `data/SingleCityTrack.json`
   - `data/239.json`, `data/240.json`, `data/241.json`, `data/242.json`, `data/243.json`, `data/244.json`
 
-## Development
-
-For live-reload development:
-
-```shell
-# Start in dev mode (ts-node-dev)
- yarn run dev
-```
 
 ## Notes
 

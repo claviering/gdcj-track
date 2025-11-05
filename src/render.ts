@@ -124,7 +124,7 @@ export function renderResultHtml(q: QueryResult): string {
   <div class="min-h-screen bg-gray-50">
     <header class="py-4 md:py-6 bg-white border-b border-gray-100">
       <div class="container mx-auto px-4">
-        <h1 class="text-xl md:text-2xl font-bold">列车时刻查询</h1>
+        <h1 class="text-xl md:text-2xl font-bold">广东城际时刻查询</h1>
         <p class="text-sm text-gray-500 mt-1">${escapeHtml(q.start)} → ${escapeHtml(q.end)}</p>
       </div>
     </header>

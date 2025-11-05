@@ -6,7 +6,7 @@ export function renderHomePage(allStationNames: Set<string>): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>列车时刻查询</title>
+  <title>广东城际时刻查询</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .station-dropdown {
@@ -24,7 +24,7 @@ export function renderHomePage(allStationNames: Set<string>): string {
 </head>
 <body class="min-h-screen bg-gray-50">
   <div class="max-w-xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-4">列车时刻查询</h1>
+    <h1 class="text-2xl font-bold mb-4">广东城际时刻查询</h1>
     <form action="/train-schedule" method="get" class="space-y-3 bg-white p-4 rounded-xl border border-gray-100 shadow">
       <div class="relative">
         <label class="block text-sm text-gray-600 mb-1">起点站</label>
