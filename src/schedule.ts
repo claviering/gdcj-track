@@ -422,8 +422,8 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
     }
   }
 
-  // Compute solutions and track maximum time for direct track transfers
-  let maxDirectTrackTime: number | null = null;
+  // Compute solutions and track minimum time for direct track transfers
+  let minDirectTrackTime: number | null = null;
   const directSolutions: TransferCandidate[] = [];
   const reverseSolutions: TransferCandidate[] = [];
 
@@ -540,9 +540,9 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
             reverseSolutions.push(candidate);
           } else {
             directSolutions.push(candidate);
-            // Update maximum direct track time
-            if (maxDirectTrackTime === null || totalMinutes > maxDirectTrackTime) {
-              maxDirectTrackTime = totalMinutes;
+            // Track the fastest direct-track transfer time
+            if (minDirectTrackTime === null || totalMinutes < minDirectTrackTime) {
+              minDirectTrackTime = totalMinutes;
             }
           }
 
@@ -556,9 +556,9 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
     }
   }
 
-  // Filter reverse solutions: only keep those faster than max direct track time
-  const filteredReverseSolutions = maxDirectTrackTime !== null
-    ? reverseSolutions.filter(candidate => candidate.solution.totalMinutes < maxDirectTrackTime!)
+  // Filter reverse solutions: only keep those faster than the fastest direct-track transfer
+  const filteredReverseSolutions = minDirectTrackTime !== null
+    ? reverseSolutions.filter(candidate => candidate.solution.totalMinutes < minDirectTrackTime)
     : reverseSolutions;
 
   // Combine all solutions
@@ -566,14 +566,14 @@ function buildTransferSolutions(store: DataStore, start: string, end: string, di
 
   // If no direct tracks available, try two-transfer solutions
   if (directTrackIds.size === 0 && reverseTrackIds.size === 0) {
-    // Get the maximum time from one-transfer solutions to use as threshold
-    const maxOneTransferTime = solutions.length > 0
-      ? Math.max(...solutions.map(s => s.solution.totalMinutes))
+    // Get the minimum time from one-transfer solutions to use as threshold
+    const minOneTransferTime = solutions.length > 0
+      ? Math.min(...solutions.map(s => s.solution.totalMinutes))
       : null;
 
     const twoTransferSolutions = buildTwoTransferSolutions(store, start, end, departTime);
-    if (maxOneTransferTime !== null) {
-      const fasterTwoTransfers = twoTransferSolutions.filter(t => t.totalMinutes < maxOneTransferTime);
+    if (minOneTransferTime !== null) {
+      const fasterTwoTransfers = twoTransferSolutions.filter(t => t.totalMinutes < minOneTransferTime);
       // Convert to TransferCandidate format
       const twoTransferCandidates: TransferCandidate[] = fasterTwoTransfers.map(sol => ({
         solution: sol,
