@@ -1,16 +1,11 @@
 {
-  "header": {
-    "code": "0",
-    "message": "查询成功"
-  },
   "body": [
     {
       "trackName": "肇庆-惠州北",
       "list": [
         {
-          "cityTrackId": 244,
+          "cityTrackId": 257,
           "trackName": "肇庆-惠州北",
-          "status": 1,
           "startStationName": "肇庆",
           "endStationName": "惠州北"
         }
@@ -20,9 +15,8 @@
       "trackName": "肇庆-飞霞",
       "list": [
         {
-          "cityTrackId": 243,
+          "cityTrackId": 256,
           "trackName": "肇庆-飞霞",
-          "status": 1,
           "startStationName": "肇庆",
           "endStationName": "飞霞"
         }
@@ -32,9 +26,8 @@
       "trackName": "惠州北-肇庆",
       "list": [
         {
-          "cityTrackId": 242,
+          "cityTrackId": 255,
           "trackName": "惠州北-肇庆",
-          "status": 1,
           "startStationName": "惠州北",
           "endStationName": "肇庆"
         }
@@ -44,9 +37,8 @@
       "trackName": "惠州北-飞霞",
       "list": [
         {
-          "cityTrackId": 241,
+          "cityTrackId": 254,
           "trackName": "惠州北-飞霞",
-          "status": 1,
           "startStationName": "惠州北",
           "endStationName": "飞霞"
         }
@@ -56,9 +48,8 @@
       "trackName": "飞霞-肇庆",
       "list": [
         {
-          "cityTrackId": 240,
+          "cityTrackId": 253,
           "trackName": "飞霞-肇庆",
-          "status": 1,
           "startStationName": "飞霞",
           "endStationName": "肇庆"
         }
@@ -68,9 +59,8 @@
       "trackName": "飞霞-惠州北",
       "list": [
         {
-          "cityTrackId": 239,
+          "cityTrackId": 252,
           "trackName": "飞霞-惠州北",
-          "status": 1,
           "startStationName": "飞霞",
           "endStationName": "惠州北"
         }

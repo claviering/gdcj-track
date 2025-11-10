@@ -32,6 +32,15 @@ For live-reload development:
  yarn run dev
 ```
 
+## update data
+To update the data files, replace the existing JSON files in the `data/` directory with the new versions. Ensure that the filenames remain the same:
+- `SingleCityTrack.json`
+- `{cityTrackId}.json` (e.g., `239.json`, `240.json`, etc.)
+
+```shell
+yarn run update-data
+```
+
 ## Setup
 
 ```shell
